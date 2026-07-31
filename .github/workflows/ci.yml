@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancela execuções antigas do mesmo branch — não faz sentido rodar CI
+# em um commit que já foi substituído.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint · Typecheck · Testes
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # `npm ci` respeita o package-lock.json exatamente — instalação
+      # reproduzível, diferente do `npm install`.
+      - name: Instalar dependências
+        run: npm ci
+
+      # O pacote compartilhado precisa existir compilado antes de a API e o
+      # PWA serem checados: ambos importam @circula/shared.
+      - name: Compilar pacote compartilhado
+        run: npm run build:shared
+
+      - name: Formatação (Prettier)
+        run: npm run format:check
+
+      - name: Lint (ESLint)
+        run: npm run lint
+
+      - name: Checagem de tipos
+        run: npm run typecheck
+
+      - name: Testes
+        run: npm test

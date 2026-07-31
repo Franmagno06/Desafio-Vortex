@@ -1,0 +1,41 @@
+# dependências
+node_modules/
+.npm/
+
+# build
+dist/
+build/
+*.tsbuildinfo
+
+# ambiente (NUNCA commitar credenciais)
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# prisma
+apps/api/prisma/*.db
+apps/api/prisma/*.db-journal
+
+# logs
+*.log
+npm-debug.log*
+logs/
+
+# editores / SO
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# cache de ferramentas
+.vite/
+.turbo/
+coverage/
+dev-dist/
+
+# PWA gerado em build
+apps/web/dist/sw.js
+apps/web/dist/workbox-*.js

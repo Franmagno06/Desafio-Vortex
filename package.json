@@ -1,0 +1,37 @@
+{
+  "name": "circula",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Circula — Marketplace de Economia Circular do Campus (Desafio Técnico Laboratório Vortex / UNIFOR)",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run build:shared && concurrently -n api,web -c cyan,magenta \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "npm run dev --workspace @circula/api",
+    "dev:web": "npm run dev --workspace @circula/web",
+    "build:shared": "npm run build --workspace @circula/shared",
+    "build": "npm run build:shared && npm run build --workspace @circula/api && npm run build --workspace @circula/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css,yml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,css,yml}\""
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "concurrently": "^10.0.4",
+    "eslint": "^10.8.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.8.0",
+    "prettier": "^3.9.6",
+    "typescript": "5.9.3",
+    "typescript-eslint": "^8.65.0"
+  }
+}

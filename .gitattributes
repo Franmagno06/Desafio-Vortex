@@ -1,0 +1,17 @@
+# Normaliza as quebras de linha em LF no repositório E na cópia de trabalho.
+#
+# Sem isso, o Git no Windows converteria tudo para CRLF ao fazer checkout, e o
+# `prettier --check` (configurado com endOfLine: "lf") falharia no CI rodando
+# em Linux — o clássico "passa na minha máquina, quebra no GitHub Actions".
+* text=auto eol=lf
+
+# Binários não devem ser tocados.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.pdf binary
