@@ -175,8 +175,8 @@ Detalhes e justificativas das escolhas: [`docs/ARCHITECTURE.md`](docs/ARCHITECTU
 ### 1. Clonar o repositório
 
 ```bash
-git clone https://github.com/SEU-USUARIO/circula.git
-cd circula
+git clone https://github.com/Franmagno06/Desafio-Vortex.git
+cd Desafio-Vortex
 ```
 
 ### 2. Instalar as dependências
