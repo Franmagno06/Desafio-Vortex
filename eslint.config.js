@@ -31,6 +31,14 @@ export default tseslint.config(
     },
   },
 
+  {
+    // Scripts de linha de comando: a saída no terminal É a interface deles.
+    files: ['**/prisma/seed.ts', '**/scripts/**/*.ts'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
+
   // Precisa ser o último: desliga regras que conflitam com o Prettier.
   prettier,
 );

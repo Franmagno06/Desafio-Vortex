@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { CATEGORIES, ITEM_TYPES } from '@circula/shared';
+import { checkDatabaseConnection } from '../../lib/prisma.js';
 
 /**
  * Rotas de diagnóstico.
@@ -12,12 +13,40 @@ export const healthRouter: Router = Router();
 
 const startedAt = Date.now();
 
+/**
+ * Health check raso (`/health`) — o processo está no ar?
+ *
+ * Deliberadamente NÃO toca o banco. É o que a plataforma chama a cada poucos
+ * segundos; se ele abrisse conexão toda vez, o próprio monitoramento consumiria
+ * o pool do plano gratuito.
+ */
 healthRouter.get('/health', (_req, res) => {
   res.json({
     status: 'ok',
     service: 'circula-api',
-    version: process.env['npm_package_version'] ?? '0.1.0',
+    version: process.env['npm_package_version'] ?? '0.2.0',
     uptimeSeconds: Math.floor((Date.now() - startedAt) / 1000),
+    timestamp: new Date().toISOString(),
+  });
+});
+
+/**
+ * Health check profundo (`/health/ready`) — o serviço consegue ATENDER?
+ *
+ * Aqui sim o banco é consultado. A distinção entre "vivo" e "pronto" é o
+ * padrão liveness × readiness: um processo pode estar rodando perfeitamente e
+ * ainda assim ser incapaz de responder, porque o banco caiu. Devolver 200 nesse
+ * estado esconderia a falha justamente de quem deveria detectá-la.
+ */
+healthRouter.get('/health/ready', async (_req, res) => {
+  const databaseOk = await checkDatabaseConnection();
+
+  // 503 Service Unavailable é o status correto para "estou de pé, mas não
+  // consigo servir agora".
+  res.status(databaseOk ? 200 : 503).json({
+    status: databaseOk ? 'ready' : 'degraded',
+    service: 'circula-api',
+    checks: { database: databaseOk ? 'ok' : 'unreachable' },
     timestamp: new Date().toISOString(),
   });
 });

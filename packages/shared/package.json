@@ -1,6 +1,6 @@
 {
   "name": "@circula/shared",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "Contratos compartilhados (enums de domínio, schemas Zod e tipos) entre a API e o PWA.",

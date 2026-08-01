@@ -1,0 +1,35 @@
+# PostgreSQL local — alternativa ao Neon para quem clonar o repositório.
+#
+#   docker compose up -d       sobe o banco em segundo plano
+#   docker compose down        derruba (mantém os dados no volume)
+#   docker compose down -v     derruba E apaga os dados
+#
+# Depois de subir, aponte o .env da API para:
+#   DATABASE_URL="postgresql://circula:circula@localhost:5432/circula?schema=public"
+
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: circula-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: circula
+      POSTGRES_PASSWORD: circula
+      POSTGRES_DB: circula
+    ports:
+      # 5432 é a porta padrão do Postgres. Se você já tiver um rodando na
+      # máquina, troque o lado ESQUERDO (ex.: "5433:5432") e ajuste a
+      # DATABASE_URL — o conflito silencioso de porta já nos custou tempo
+      # nesta mesma máquina na Sprint 0.
+      - '5432:5432'
+    volumes:
+      - circula-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # Impede que a API tente conectar antes de o Postgres aceitar conexões.
+      test: ['CMD-SHELL', 'pg_isready -U circula -d circula']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  circula-pgdata:

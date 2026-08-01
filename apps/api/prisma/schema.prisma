@@ -1,0 +1,114 @@
+// Modelo de dados do Circula.
+//
+// Este arquivo é a fonte da verdade do banco: as migrations são geradas a
+// partir dele, e o cliente TypeScript também. Alterou aqui, rode:
+//   npm run db:migrate    (cria a migration e aplica)
+//   npm run db:generate   (regenera só o cliente tipado)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+//
+// Espelham 1:1 os arrays de packages/shared/src/domain/enums.ts. O Postgres
+// cria tipos nativos a partir deles, então um valor fora da lista é rejeitado
+// pelo próprio banco — a última linha de defesa depois do Zod.
+// ---------------------------------------------------------------------------
+
+enum Category {
+  LIVROS
+  ENGENHARIA
+  COMPUTACAO
+  ELETRONICOS
+  VESTUARIO
+  MOVEIS
+  PAPELARIA
+  OUTROS
+}
+
+enum ItemType {
+  VENDA
+  DOACAO
+  TROCA
+}
+
+enum ItemCondition {
+  NOVO
+  SEMINOVO
+  USADO
+}
+
+enum AnnouncementStatus {
+  ATIVO
+  RESERVADO
+  CONCLUIDO
+}
+
+// ---------------------------------------------------------------------------
+// Modelos
+// ---------------------------------------------------------------------------
+
+model User {
+  id String @id @default(uuid()) @db.Uuid
+
+  name  String @db.VarChar(120)
+  email String @unique @db.VarChar(160)
+
+  /// Hash da senha (bcrypt) — preenchido na Sprint 2. A senha em texto puro
+  /// nunca é armazenada nem logada.
+  passwordHash String @db.VarChar(120)
+
+  course    String? @db.VarChar(120)
+  campus    String? @db.VarChar(120)
+  avatarUrl String? @db.VarChar(500)
+
+  announcements Announcement[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Announcement {
+  id String @id @default(uuid()) @db.Uuid
+
+  title       String @db.VarChar(120)
+  description String @db.Text
+
+  category  Category
+  condition ItemCondition
+  type      ItemType
+
+  /// Preço em CENTAVOS (inteiro), nunca em ponto flutuante.
+  /// `null` quando o tipo é DOACAO ou TROCA — regra garantida no service.
+  priceCents Int?
+
+  imageUrl String @db.VarChar(500)
+
+  status AnnouncementStatus @default(ATIVO)
+
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId String @db.Uuid
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// Exclusão lógica: DELETE preenche esta coluna em vez de apagar a linha.
+  /// Preserva histórico e permite auditoria. Toda consulta filtra por null.
+  deletedAt DateTime?
+
+  // Índices desenhados a partir das consultas que a vitrine realmente faz.
+  // Sem eles o Postgres faria varredura sequencial na tabela inteira.
+  @@index([deletedAt, status, createdAt]) // listagem pública ordenada por data
+  @@index([deletedAt, category]) // filtro por categoria
+  @@index([authorId, deletedAt]) // tela "meus anúncios"
+  @@map("announcements")
+}

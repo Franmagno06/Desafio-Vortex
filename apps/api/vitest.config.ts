@@ -9,6 +9,10 @@ export default defineConfig({
       NODE_ENV: 'test',
       PORT: '3999',
       CORS_ORIGINS: 'http://localhost:5173',
+      // A validação de env exige DATABASE_URL, mas os testes injetam um
+      // repositório em memória e nunca abrem conexão. Este valor só satisfaz
+      // o schema no boot — nenhum teste toca o Postgres.
+      DATABASE_URL: 'postgresql://test:test@localhost:5432/circula_test',
     },
   },
 });

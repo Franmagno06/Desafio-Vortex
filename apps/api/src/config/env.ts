@@ -33,6 +33,26 @@ const envSchema = z.object({
     ),
 
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
+
+  /**
+   * String de conexão do PostgreSQL.
+   *
+   * Obrigatória: sem banco, a API não tem o que servir. Se estiver ausente ou
+   * malformada, o processo morre aqui — e não na primeira requisição que
+   * tentasse ler um anúncio.
+   */
+  DATABASE_URL: z
+    .string({
+      // Sem este `error`, uma variável AUSENTE cai na mensagem genérica do Zod
+      // ("expected string, received undefined") e não diz o que fazer. Mensagem
+      // de erro que não indica a próxima ação desperdiça o fail fast.
+      error: 'DATABASE_URL é obrigatória. Cole a connection string do Neon em apps/api/.env',
+    })
+    .min(1, 'DATABASE_URL está vazia. Cole a connection string do Neon em apps/api/.env')
+    .refine(
+      (url) => url.startsWith('postgresql://') || url.startsWith('postgres://'),
+      'DATABASE_URL precisa começar com postgresql:// ou postgres://',
+    ),
 });
 
 const parsed = envSchema.safeParse(process.env);

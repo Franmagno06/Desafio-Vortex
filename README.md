@@ -10,10 +10,10 @@ Processo Seletivo para Estágio Full-Stack 2026.
 <!-- prettier-ignore -->
 | | |
 |---|---|
-| **Status** | 🚧 Em desenvolvimento — Sprint 0 concluída |
+| **Status** | 🚧 Em desenvolvimento — Sprint 1 concluída |
 | **Landing (produção)** | _a publicar na Sprint 6_ |
 | **API (produção)** | _a publicar na Sprint 6_ |
-| **Documentação da API** | _a publicar na Sprint 1_ |
+| **Documentação da API** | OpenAPI 3.1 interativo em `/docs` |
 
 ---
 
@@ -69,8 +69,12 @@ instalável no celular para anunciar em menos de um minuto.
 **API REST**
 
 - ✅ Envelope JSON padronizado, inclusive em erros
-- ✅ Rota de health check
-- ⬜ CRUD de anúncios com filtros e paginação
+- ✅ Health check raso (`/health`) e profundo (`/health/ready`)
+- ✅ CRUD completo de anúncios com filtros, busca e paginação
+- ✅ Regra de negócio: doação e troca não têm preço
+- ✅ Exclusão lógica (soft delete) — nada é apagado de verdade
+- ✅ Estatísticas e catálogo de categorias com contagem
+- ✅ Documentação OpenAPI 3.1 interativa em `/docs`
 - ⬜ Autenticação JWT com regra de propriedade
 
 ---
@@ -85,8 +89,9 @@ instalável no celular para anunciar em menos de um minuto.
 | **TypeScript 5.9**                     | Tipagem estática em modo `strict`                |
 | **Express 5**                          | Framework HTTP                                   |
 | **Zod 4**                              | Validação de entrada e das variáveis de ambiente |
-| **Prisma 6**                           | ORM e migrations _(Sprint 1)_                    |
-| **PostgreSQL (Neon)**                  | Banco relacional em nuvem _(Sprint 1)_           |
+| **Prisma 6**                           | ORM, migrations e seed                           |
+| **PostgreSQL (Neon)**                  | Banco relacional em nuvem                        |
+| **swagger-ui-express**                 | Documentação interativa em `/docs`               |
 | **JWT + bcryptjs**                     | Autenticação _(Sprint 2)_                        |
 | **Helmet · CORS · express-rate-limit** | Camada de segurança HTTP                         |
 | **Pino**                               | Log estruturado                                  |
@@ -120,15 +125,23 @@ Monorepo com **npm workspaces** — um único `npm install` na raiz instala tudo
 circula/
 ├─ apps/
 │  ├─ api/                      # API REST (Express 5 + TypeScript)
+│  │  ├─ prisma/
+│  │  │  ├─ schema.prisma       # modelo de dados (fonte da verdade)
+│  │  │  ├─ migrations/         # SQL versionado
+│  │  │  └─ seed.ts             # 6 usuários + 28 anúncios realistas
 │  │  ├─ src/
 │  │  │  ├─ server.ts           # sobe o HTTP e trata SIGTERM
 │  │  │  ├─ app.ts              # monta o Express (sem escutar porta)
 │  │  │  ├─ config/env.ts       # variáveis de ambiente validadas com Zod
-│  │  │  ├─ middlewares/        # error handler global, 404
+│  │  │  ├─ docs/openapi.ts     # OpenAPI gerado a partir dos schemas Zod
+│  │  │  ├─ lib/prisma.ts       # cliente único (singleton)
+│  │  │  ├─ middlewares/        # validação, identificação, erros, 404
 │  │  │  ├─ modules/            # uma pasta por recurso do domínio
+│  │  │  │  ├─ announcements/   # routes · service · repository · mapper
+│  │  │  │  ├─ catalog/         # categorias, opções e estatísticas
 │  │  │  │  └─ health/
 │  │  │  └─ shared/             # AppError, logger
-│  │  └─ tests/                 # testes de integração (Vitest + Supertest)
+│  │  └─ tests/                 # integração (Vitest + Supertest, sem banco)
 │  └─ web/                      # PWA (React 19 + Vite)
 │     ├─ src/
 │     │  ├─ lib/api-client.ts   # único ponto que fala HTTP com a API
@@ -152,11 +165,19 @@ Requisição
    → express.json (parse do corpo, limite de 100kb)
    → pino-http (log)
    → rate limit
-   → rota  →  validação Zod  →  service (regra de negócio)  →  Prisma
+   → rota
+        → validação Zod       (valida E transforma a entrada)
+        → service             (regra de negócio, não conhece HTTP)
+        → repository          (interface — Prisma em produção, memória nos testes)
+        → mapper              (registro do banco → DTO público)
    → resposta JSON
         ↓ (em caso de erro, em qualquer ponto)
    errorHandler  →  { "error": { "code", "message", "details" } }
 ```
+
+Cada camada só conhece a de baixo. O service não sabe o que é uma resposta HTTP e o
+repositório não sabe o que é regra de negócio — é isso que permite testar as regras sem
+subir servidor nem banco.
 
 Detalhes e justificativas das escolhas: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
@@ -200,10 +221,40 @@ No Windows (PowerShell):
 Copy-Item apps/api/.env.example apps/api/.env; Copy-Item apps/web/.env.example apps/web/.env
 ```
 
-Os valores padrão já funcionam para desenvolvimento local. As variáveis estão comentadas
-uma a uma dentro dos arquivos `.env.example`.
+As variáveis estão comentadas uma a uma dentro dos `.env.example`. Uma delas é
+**obrigatória**: `DATABASE_URL`. Sem ela a API se recusa a subir, com uma mensagem
+dizendo exatamente o que falta.
 
-### 4. Subir tudo
+### 4. Preparar o banco de dados
+
+Escolha **uma** das opções:
+
+**Opção A — Neon (PostgreSQL em nuvem, gratuito):** crie um projeto em
+[neon.tech](https://neon.tech), copie a _connection string_ e cole em
+`apps/api/.env` na variável `DATABASE_URL`.
+
+**Opção B — PostgreSQL local via Docker:**
+
+```bash
+docker compose up -d
+```
+
+Depois use no `.env`: `DATABASE_URL="postgresql://circula:circula@localhost:5432/circula?schema=public"`
+
+Com a variável configurada, crie as tabelas e popule com dados de exemplo:
+
+```bash
+npm run db:deploy --workspace @circula/api
+```
+
+```bash
+npm run db:seed --workspace @circula/api
+```
+
+O seed cria 6 usuários e 28 anúncios realistas, e imprime os ids que você deve usar no
+cabeçalho `X-User-Id` para testar as rotas protegidas.
+
+### 5. Subir tudo
 
 ```bash
 npm run dev
@@ -237,6 +288,16 @@ Todos executados a partir da **raiz** do projeto.
 | `npm run lint`      | ESLint em todo o monorepo                        |
 | `npm run format`    | Formata o código com Prettier                    |
 
+Scripts de banco (rodam no workspace da API — acrescente `--workspace @circula/api`):
+
+| Comando              | O que faz                                          |
+| -------------------- | -------------------------------------------------- |
+| `npm run db:deploy`  | Aplica as migrations existentes (produção e setup) |
+| `npm run db:migrate` | Cria uma migration nova a partir do schema         |
+| `npm run db:seed`    | Popula com 6 usuários e 28 anúncios de exemplo     |
+| `npm run db:studio`  | Abre o Prisma Studio para inspecionar as tabelas   |
+| `npm run db:reset`   | ⚠️ Apaga tudo, reaplica migrations e roda o seed   |
+
 ---
 
 ## 🔌 API REST
@@ -245,20 +306,49 @@ Base local: `http://localhost:4000` · Prefixo versionado: `/api/v1`
 
 ### Endpoints
 
-| Método | Rota               | Auth | Descrição                       |
-| ------ | ------------------ | ---- | ------------------------------- |
-| `GET`  | `/health`          | —    | Status do serviço               |
-| `GET`  | `/health/contract` | —    | Enums de domínio compartilhados |
+| Método   | Rota                         | Auth | Descrição                                      |
+| -------- | ---------------------------- | ---- | ---------------------------------------------- |
+| `GET`    | `/api/v1/announcements`      | —    | Vitrine pública, com filtros e paginação       |
+| `POST`   | `/api/v1/announcements`      | 🔒   | Cria um anúncio                                |
+| `GET`    | `/api/v1/announcements/mine` | 🔒   | Meus anúncios                                  |
+| `GET`    | `/api/v1/announcements/:id`  | —    | Detalha um anúncio                             |
+| `PATCH`  | `/api/v1/announcements/:id`  | 🔒   | Atualiza parcialmente (apenas o dono)          |
+| `DELETE` | `/api/v1/announcements/:id`  | 🔒   | Exclusão lógica (apenas o dono)                |
+| `GET`    | `/api/v1/categories`         | —    | Categorias com contagem de anúncios ativos     |
+| `GET`    | `/api/v1/catalog`            | —    | Opções de formulário (categoria/tipo/estado)   |
+| `GET`    | `/api/v1/stats`              | —    | Estatísticas reais da plataforma               |
+| `GET`    | `/health`                    | —    | Status do serviço (não toca o banco)           |
+| `GET`    | `/health/ready`              | —    | Status do serviço **e** do banco (503 se fora) |
+| `GET`    | `/docs`                      | —    | Documentação interativa (Swagger UI)           |
+| `GET`    | `/openapi.json`              | —    | Especificação OpenAPI 3.1                      |
 
-> As rotas de anúncios (`/api/v1/announcements`) chegam na Sprint 1 e as de autenticação
-> (`/api/v1/auth`) na Sprint 2. Esta tabela é atualizada a cada sprint.
+**Filtros da listagem:** `?category=` `?type=` `?condition=` `?status=` `?q=` `?sort=`
+`?page=` `?limit=`
+
+> 🔒 Na Sprint 1 a identificação usa o cabeçalho `X-User-Id` — a alternativa que o próprio
+> edital admite ("separação por IDs de usuário"). Na Sprint 2 vira JWT, e **só o middleware
+> muda**: rotas, service e repositório ficam intactos.
+
+### Regra de negócio central
+
+Doação e troca **não têm preço**. A regra vive em um único arquivo
+(`packages/shared/src/domain/rules.ts`) e é aplicada na API e — a partir da Sprint 4 — no
+formulário do PWA:
+
+```jsonc
+// 422 VALIDATION_ERROR
+{ "type": "DOACAO", "priceCents": 5000 }
+
+// ✅ aceito
+{ "type": "DOACAO", "priceCents": null }
+```
 
 ### Formato das respostas
 
 Sucesso:
 
 ```json
-{ "status": "ok", "service": "circula-api", "version": "0.1.0" }
+{ "status": "ok", "service": "circula-api", "version": "0.2.0" }
 ```
 
 Erro — **sempre** neste envelope, em qualquer rota e qualquer status:
@@ -294,6 +384,11 @@ Os testes usam **Vitest + Supertest**. O `createApp()` devolve a aplicação Exp
 `listen()`, então o Supertest sobe um servidor efêmero por teste — nenhuma porta fixa é
 ocupada e a suíte roda em milissegundos.
 
+**34 testes rodam sem precisar de um banco de dados.** Isso é possível porque o service
+depende de uma _interface_ de repositório, não do Prisma: em produção entra a implementação
+Prisma, nos testes uma implementação em memória. É o que permite o CI do GitHub Actions
+validar toda a regra de negócio sem subir um PostgreSQL no pipeline.
+
 ---
 
 ## ☁️ Deploy
@@ -313,9 +408,9 @@ ocupada e a suíte roda em milissegundos.
 
 ### 1. Ferramentas utilizadas
 
-| Ferramenta                      | Uso principal                                                        | Sprints |
-| ------------------------------- | -------------------------------------------------------------------- | ------- |
-| **Claude Opus 5 (Claude Code)** | Discussão de arquitetura, scaffolding do monorepo, revisão de código | 0 →     |
+| Ferramenta                      | Uso principal                                                                            | Sprints |
+| ------------------------------- | ---------------------------------------------------------------------------------------- | ------- |
+| **Claude Opus 5 (Claude Code)** | Discussão de arquitetura, scaffolding do monorepo, modelagem de dados, revisão de código | 0 → 1   |
 
 _(atualizar conforme outras ferramentas forem entrando)_
 
@@ -358,7 +453,23 @@ O raciocínio: a banca avalia se **eu** domino o código. Um framework que eu j�
 explicar cada middleware com segurança; um framework novo me faria depender da IA para
 justificar as próprias escolhas. Troquei "elegância técnica" por "autoria defensável".
 
-**Prompt #3 — _a preencher na Sprint 1_** (debug de um problema real)
+**Prompt #3 — Exigindo o registro do processo, não só o produto**
+
+```
+Tudo pronto pode começar a sprint 1, sempre lembrando de mostrar tópicos do
+desenvolvimento do sprint 1 que você considera importante para estudo e obtenção de
+conhecimento técnico, no mais continue a registrar no diário de bordo seu desenvolvimento
+sa sprint 1, erros e acertos que teve ao longo do caminho. Criei a conta na Neon quando
+finalizar o sprint eu mesmo colocar o DATABASE_URL.
+```
+
+Duas decisões deliberadas aqui. A primeira: pedir **erros e acertos**, não só o resultado.
+Sem isso a IA entrega o código final polido e os bugs do caminho somem — junto com o
+aprendizado. A segunda: segurar a `DATABASE_URL` de propósito até o fim da sprint, para ver
+como a API se comporta **sem** banco. Foi assim que descobri que `/health` respondia 200
+com o Postgres fora, o que motivou criar o `/health/ready` devolvendo 503.
+
+_(O prompt sobre a arquitetura do Service Worker entra aqui na Sprint 5.)_
 
 ### 3. Compartilhamento de histórico
 
@@ -389,6 +500,26 @@ nenhum erro. Diagnostiquei com `Get-NetTCPConnection -LocalPort 3333` e movi o p
 porta 4000. Lição: um `200 OK` não prova que você falou com o servidor certo — vale conferir
 _quem_ respondeu.
 
+**d) O bug que apagaria preços em produção (Sprint 1).** O schema de criação de anúncio
+declarava `priceCents: z.number().nullable().default(null)`, e o de atualização derivava dele
+com `.partial()`. Parece seguro — mas **`.partial()` torna o campo opcional sem remover o
+default**. Na prática, um `PATCH { "status": "RESERVADO" }` saía do parse como
+`{ status: 'RESERVADO', priceCents: null }` e **apagava o preço** de um anúncio de venda sem
+ninguém ter pedido.
+
+Peguei isso porque, antes de construir o backend em cima dos schemas, rodei um script
+exercitando cada regra e imprimindo o resultado — o caso "PATCH só com status" mostrou
+`priceCents: null` na saída. Se eu tivesse lido o código e achado que estava certo, o bug só
+apareceria quando um usuário reservasse o próprio anúncio e perdesse o valor. Hoje existe um
+teste de regressão fixando esse comportamento.
+
+**e) Código inalcançável que parecia correto (Sprint 1).** O service tinha um bloco explícito
+zerando o preço ao converter uma venda em doação. O bloco nunca executava: três linhas acima,
+a validação já lançava 422 comparando o tipo novo com o preço antigo. A IA acertou a intenção
+e errou a **ordem** — e o código _lia_ como se funcionasse. Só um teste automatizado revelou.
+Ficou a lição de que código morto não avisa que é morto; foi preciso reordenar para resolver o
+preço final **antes** de validá-lo.
+
 ---
 
 ## 🗺 Roadmap por sprint
@@ -396,8 +527,8 @@ _quem_ respondeu.
 | Sprint | Entrega                                                         | Status |
 | ------ | --------------------------------------------------------------- | ------ |
 | **0**  | Monorepo, TypeScript strict, lint, CI, ambiente rodando         | ✅     |
-| **1**  | Modelagem, Prisma + PostgreSQL, CRUD de anúncios, filtros, docs | 🚧     |
-| **2**  | Autenticação JWT, regra de propriedade, validação robusta       | ⬜     |
+| **1**  | Modelagem, Prisma + PostgreSQL, CRUD de anúncios, filtros, docs | ✅     |
+| **2**  | Autenticação JWT, regra de propriedade, validação robusta       | 🚧     |
 | **3**  | Landing Page desktop com vitrine e filtros                      | ⬜     |
 | **4**  | App mobile: criar anúncio, meus anúncios, detalhe               | ⬜     |
 | **5**  | PWA: manifesto, Service Worker, offline, instalação             | ⬜     |

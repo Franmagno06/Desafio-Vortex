@@ -53,3 +53,4 @@ O que eu queria resolver nesta sessão.
 | Sessão                        | Data       | Sprint | Tema                                               |
 | ----------------------------- | ---------- | ------ | -------------------------------------------------- |
 | [01](2026-07-31-sessao-01.md) | 31/07/2026 | 0      | Planejamento de arquitetura e fundação do monorepo |
+| [02](2026-08-01-sessao-02.md) | 01/08/2026 | 1      | Modelagem, CRUD de anúncios, validação e OpenAPI   |
