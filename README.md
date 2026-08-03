@@ -10,7 +10,7 @@ Processo Seletivo para Estágio Full-Stack 2026.
 <!-- prettier-ignore -->
 | | |
 |---|---|
-| **Status** | 🚧 Em desenvolvimento — Sprint 2 concluída |
+| **Status** | 🚧 Em desenvolvimento — Sprint 3 concluída |
 | **Landing (produção)** | _a publicar na Sprint 6_ |
 | **API (produção)** | _a publicar na Sprint 6_ |
 | **Documentação da API** | OpenAPI 3.1 interativo em `/docs` |
@@ -52,11 +52,13 @@ instalável no celular para anunciar em menos de um minuto.
 
 **Landing Page pública (desktop)**
 
-- ⬜ Apresentação da proposta de economia circular no campus
-- ⬜ Estatísticas do sistema (itens ativos, doações realizadas, usuários)
-- ⬜ Vitrine com os últimos itens anunciados
-- ⬜ Filtros por categoria (Livros, Engenharia, Computação, …)
-- ⬜ CTAs para anunciar e para buscar itens
+- ✅ Apresentação da proposta de economia circular no campus
+- ✅ Estatísticas do sistema — **reais**, contadas no banco
+- ✅ Vitrine com os últimos itens anunciados
+- ✅ Filtros por categoria, com contagem em cada chip
+- ✅ CTAs para anunciar e para buscar itens
+- ✅ Skeletons, estado vazio, estado de erro e transições suaves
+- ✅ Responsividade completa (4 colunas no desktop, 1 no mobile)
 
 **Aplicativo PWA (mobile)**
 
@@ -107,8 +109,8 @@ instalável no celular para anunciar em menos de um minuto.
 | **TypeScript 5.9**   | Tipagem estática                        |
 | **Vite 8**           | Build e dev server                      |
 | **Tailwind CSS 4**   | Estilo e design tokens                  |
-| **React Router 8**   | Roteamento _(Sprint 3)_                 |
-| **TanStack Query 5** | Cache de dados do servidor _(Sprint 3)_ |
+| **React Router 8**   | Roteamento e layouts aninhados          |
+| **TanStack Query 5** | Cache de dados do servidor              |
 | **React Hook Form**  | Formulários _(Sprint 4)_                |
 | **vite-plugin-pwa**  | Manifesto e Service Worker _(Sprint 5)_ |
 
@@ -146,9 +148,17 @@ circula/
 │  │  └─ tests/                 # integração (Vitest + Supertest, sem banco)
 │  └─ web/                      # PWA (React 19 + Vite)
 │     ├─ src/
-│     │  ├─ lib/api-client.ts   # único ponto que fala HTTP com a API
-│     │  ├─ styles/global.css   # design tokens do Tailwind v4
-│     │  └─ App.tsx
+│     │  ├─ app/router.tsx      # rotas e layout compartilhado
+│     │  ├─ components/
+│     │  │  ├─ ui/              # Button, Badge, Skeleton
+│     │  │  └─ layout/          # Header, Footer
+│     │  ├─ features/
+│     │  │  └─ announcements/   # api · hooks · card · filtros
+│     │  ├─ pages/landing/      # Hero, Stats, HowItWorks, Showcase
+│     │  ├─ lib/
+│     │  │  ├─ api-client.ts    # único ponto que fala HTTP com a API
+│     │  │  └─ query-client.ts  # cache e chaves do TanStack Query
+│     │  └─ styles/global.css   # design tokens do Tailwind v4
 │     └─ index.html
 ├─ packages/
 │  └─ shared/                   # contratos comuns (enums, schemas, helpers)
@@ -537,8 +547,8 @@ preço final **antes** de validá-lo.
 | **0**  | Monorepo, TypeScript strict, lint, CI, ambiente rodando         | ✅     |
 | **1**  | Modelagem, Prisma + PostgreSQL, CRUD de anúncios, filtros, docs | ✅     |
 | **2**  | Autenticação JWT, regra de propriedade, validação robusta       | ✅     |
-| **3**  | Landing Page desktop com vitrine e filtros                      | 🚧     |
-| **4**  | App mobile: criar anúncio, meus anúncios, detalhe               | ⬜     |
+| **3**  | Landing Page desktop com vitrine e filtros                      | ✅     |
+| **4**  | App mobile: criar anúncio, meus anúncios, detalhe               | 🚧     |
 | **5**  | PWA: manifesto, Service Worker, offline, instalação             | ⬜     |
 | **6**  | Deploy da API e do PWA + hardening de produção                  | ⬜     |
 | **7**  | README final, Diário de Bordo consolidado e vídeo               | ⬜     |
