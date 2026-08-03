@@ -9,7 +9,7 @@ import {
   updateAnnouncementSchema,
 } from '@circula/shared';
 
-import { requireUser } from '../../middlewares/identify-user.js';
+import { requireAuth } from '../../middlewares/authenticate.js';
 import { validateBody, validateParams, validateQuery } from '../../middlewares/validate.js';
 import type { AnnouncementsService } from './announcements.service.js';
 
@@ -44,7 +44,7 @@ export function createAnnouncementsRouter(service: AnnouncementsService): Router
    * registro: se `/:id` estivesse acima, ele trataria "mine" como um id e a
    * validação de UUID rejeitaria a requisição com 422.
    */
-  router.get('/mine', requireUser, validateQuery(announcementFiltersSchema), async (req, res) => {
+  router.get('/mine', requireAuth, validateQuery(announcementFiltersSchema), async (req, res) => {
     const filters = req.validatedQuery as AnnouncementFilters;
     res.json(await service.listByAuthor(req.userId!, filters));
   });
@@ -56,7 +56,7 @@ export function createAnnouncementsRouter(service: AnnouncementsService): Router
   });
 
   /** POST /api/v1/announcements — cria um anúncio. 201 + Location. */
-  router.post('/', requireUser, validateBody(createAnnouncementSchema), async (req, res) => {
+  router.post('/', requireAuth, validateBody(createAnnouncementSchema), async (req, res) => {
     const input = req.body as CreateAnnouncementInput;
     const announcement = await service.create(input, req.userId!);
 
@@ -68,7 +68,7 @@ export function createAnnouncementsRouter(service: AnnouncementsService): Router
   /** PATCH /api/v1/announcements/:id — atualização parcial, só do dono. */
   router.patch(
     '/:id',
-    requireUser,
+    requireAuth,
     validateParams(announcementIdParamSchema),
     validateBody(updateAnnouncementSchema),
     async (req, res) => {
@@ -82,7 +82,7 @@ export function createAnnouncementsRouter(service: AnnouncementsService): Router
   /** DELETE /api/v1/announcements/:id — exclusão lógica, só do dono. */
   router.delete(
     '/:id',
-    requireUser,
+    requireAuth,
     validateParams(announcementIdParamSchema),
     async (req, res) => {
       const { id } = req.validatedParams as { id: string };

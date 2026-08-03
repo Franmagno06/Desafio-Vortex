@@ -53,6 +53,30 @@ const envSchema = z.object({
       (url) => url.startsWith('postgresql://') || url.startsWith('postgres://'),
       'DATABASE_URL precisa começar com postgresql:// ou postgres://',
     ),
+
+  /**
+   * Segredo que assina os JWT.
+   *
+   * O mínimo de 32 caracteres não é burocracia: a segurança de um token
+   * HMAC-SHA256 depende inteiramente da imprevisibilidade deste valor. Um
+   * segredo curto ou adivinhável (`secret`, `circula123`) permite que qualquer
+   * pessoa forje um token válido para qualquer usuário.
+   *
+   * Gere com:
+   *   node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
+   */
+  JWT_SECRET: z
+    .string({
+      error:
+        "JWT_SECRET é obrigatória. Gere com: node -e \"console.log(require('crypto').randomBytes(48).toString('base64url'))\"",
+    })
+    .min(32, 'JWT_SECRET precisa ter pelo menos 32 caracteres para ser seguro.'),
+
+  /** Validade do token: 7d, 12h, 30m… */
+  JWT_EXPIRES_IN: z
+    .string()
+    .regex(/^\d+[smhd]$/, 'JWT_EXPIRES_IN deve ser algo como 7d, 12h ou 30m.')
+    .default('7d'),
 });
 
 const parsed = envSchema.safeParse(process.env);

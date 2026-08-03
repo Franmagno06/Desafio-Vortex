@@ -1,6 +1,8 @@
 import {
   announcementFiltersSchema,
   createAnnouncementSchema,
+  loginSchema,
+  registerSchema,
   updateAnnouncementSchema,
 } from '@circula/shared';
 import { z } from 'zod';
@@ -99,13 +101,36 @@ function buildFilterParameters() {
   }));
 }
 
-const userIdHeader = {
-  name: 'X-User-Id',
-  in: 'header' as const,
-  required: true,
-  schema: { type: 'string', format: 'uuid' },
-  description: 'Identificação temporária do usuário (Sprint 1). Vira JWT na Sprint 2.',
-};
+/**
+ * Marca a operação como protegida.
+ *
+ * O nome `bearerAuth` referencia o `securitySchemes` declarado lá embaixo — é
+ * isso que faz o Swagger UI mostrar o cadeado e o botão "Authorize", onde você
+ * cola o token uma vez e ele acompanha todas as requisições.
+ */
+const secured = [{ bearerAuth: [] }];
+
+const authUserSchema = {
+  type: 'object',
+  properties: {
+    id: { type: 'string', format: 'uuid' },
+    name: { type: 'string' },
+    email: { type: 'string', format: 'email' },
+    course: { type: 'string', nullable: true },
+    campus: { type: 'string', nullable: true },
+    avatarUrl: { type: 'string', nullable: true },
+    createdAt: { type: 'string', format: 'date-time' },
+  },
+} as const;
+
+const authResponseSchema = {
+  type: 'object',
+  properties: {
+    user: authUserSchema,
+    token: { type: 'string', description: 'JWT. Envie em `Authorization: Bearer <token>`.' },
+    expiresIn: { type: 'integer', description: 'Segundos até o token expirar.' },
+  },
+} as const;
 
 const jsonBody = (schema: unknown) => ({
   required: true,
@@ -136,11 +161,68 @@ export function buildOpenApiDocument(): Record<string, unknown> {
       { url: '/', description: 'Ambiente atual' },
     ],
     tags: [
+      { name: 'Autenticação', description: 'Cadastro, login e identidade' },
       { name: 'Anúncios', description: 'CRUD da vitrine' },
       { name: 'Catálogo', description: 'Categorias, opções de formulário e estatísticas' },
       { name: 'Sistema', description: 'Diagnóstico' },
     ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          description:
+            'Faça login em `/api/v1/auth/login`, copie o campo `token` e cole aqui. ' +
+            'O Swagger passa a enviá-lo em `Authorization: Bearer <token>` automaticamente.',
+        },
+      },
+    },
     paths: {
+      '/api/v1/auth/register': {
+        post: {
+          tags: ['Autenticação'],
+          summary: 'Cria uma conta e já devolve o token',
+          requestBody: jsonBody(toSchema(registerSchema)),
+          responses: {
+            201: jsonResponse('Conta criada', authResponseSchema),
+            409: errorResponse('E-mail já cadastrado'),
+            422: errorResponse('Dados inválidos (senha fraca, e-mail malformado…)'),
+            429: errorResponse('Muitas tentativas'),
+          },
+        },
+      },
+      '/api/v1/auth/login': {
+        post: {
+          tags: ['Autenticação'],
+          summary: 'Troca e-mail e senha por um token',
+          description:
+            'Responde 401 tanto para e-mail inexistente quanto para senha errada, ' +
+            'com a **mesma mensagem** — evita que a rota vire um validador de ' +
+            'quais e-mails têm conta.',
+          requestBody: jsonBody(toSchema(loginSchema)),
+          responses: {
+            200: jsonResponse('Autenticado', authResponseSchema),
+            401: errorResponse('E-mail ou senha incorretos'),
+            429: errorResponse('Muitas tentativas de login'),
+          },
+        },
+      },
+      '/api/v1/auth/me': {
+        get: {
+          tags: ['Autenticação'],
+          summary: 'Dados do usuário autenticado',
+          description: 'O PWA usa esta rota ao abrir para saber se o token guardado ainda vale.',
+          security: secured,
+          responses: {
+            200: jsonResponse('Usuário autenticado', {
+              type: 'object',
+              properties: { user: authUserSchema },
+            }),
+            401: errorResponse('Token ausente, inválido ou expirado'),
+          },
+        },
+      },
       '/api/v1/announcements': {
         get: {
           tags: ['Anúncios'],
@@ -157,11 +239,11 @@ export function buildOpenApiDocument(): Record<string, unknown> {
         post: {
           tags: ['Anúncios'],
           summary: 'Cria um anúncio',
-          parameters: [userIdHeader],
+          security: secured,
           requestBody: jsonBody(toSchema(createAnnouncementSchema)),
           responses: {
             201: jsonResponse('Anúncio criado', announcementSchema),
-            401: errorResponse('Cabeçalho X-User-Id ausente ou inválido'),
+            401: errorResponse('Token ausente, inválido ou expirado'),
             422: errorResponse('Dados inválidos (ex.: doação com preço)'),
           },
         },
@@ -169,11 +251,12 @@ export function buildOpenApiDocument(): Record<string, unknown> {
       '/api/v1/announcements/mine': {
         get: {
           tags: ['Anúncios'],
-          summary: 'Lista os anúncios do usuário identificado',
-          parameters: [userIdHeader, ...buildFilterParameters()],
+          summary: 'Lista os anúncios do usuário autenticado',
+          security: secured,
+          parameters: buildFilterParameters(),
           responses: {
             200: jsonResponse('Lista paginada', paginatedAnnouncements),
-            401: errorResponse('Não identificado'),
+            401: errorResponse('Token ausente, inválido ou expirado'),
           },
         },
       },
@@ -193,11 +276,11 @@ export function buildOpenApiDocument(): Record<string, unknown> {
         patch: {
           tags: ['Anúncios'],
           summary: 'Atualiza parcialmente (apenas o dono)',
-          parameters: [userIdHeader],
+          security: secured,
           requestBody: jsonBody(toSchema(updateAnnouncementSchema)),
           responses: {
             200: jsonResponse('Anúncio atualizado', announcementSchema),
-            401: errorResponse('Não identificado'),
+            401: errorResponse('Token ausente, inválido ou expirado'),
             403: errorResponse('Você não é o dono do anúncio'),
             404: errorResponse('Anúncio inexistente'),
             422: errorResponse('Dados inválidos'),
@@ -206,10 +289,10 @@ export function buildOpenApiDocument(): Record<string, unknown> {
         delete: {
           tags: ['Anúncios'],
           summary: 'Exclui logicamente (apenas o dono)',
-          parameters: [userIdHeader],
+          security: secured,
           responses: {
             204: { description: 'Excluído com sucesso, sem corpo' },
-            401: errorResponse('Não identificado'),
+            401: errorResponse('Token ausente, inválido ou expirado'),
             403: errorResponse('Você não é o dono do anúncio'),
             404: errorResponse('Anúncio inexistente'),
           },

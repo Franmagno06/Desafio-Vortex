@@ -10,7 +10,7 @@ Processo Seletivo para Estágio Full-Stack 2026.
 <!-- prettier-ignore -->
 | | |
 |---|---|
-| **Status** | 🚧 Em desenvolvimento — Sprint 1 concluída |
+| **Status** | 🚧 Em desenvolvimento — Sprint 2 concluída |
 | **Landing (produção)** | _a publicar na Sprint 6_ |
 | **API (produção)** | _a publicar na Sprint 6_ |
 | **Documentação da API** | OpenAPI 3.1 interativo em `/docs` |
@@ -75,7 +75,9 @@ instalável no celular para anunciar em menos de um minuto.
 - ✅ Exclusão lógica (soft delete) — nada é apagado de verdade
 - ✅ Estatísticas e catálogo de categorias com contagem
 - ✅ Documentação OpenAPI 3.1 interativa em `/docs`
-- ⬜ Autenticação JWT com regra de propriedade
+- ✅ Autenticação JWT (bcrypt, 7 dias de validade)
+- ✅ Regra de propriedade: só o dono edita ou exclui
+- ✅ Rate limit reforçado no login e proteção contra timing attack
 
 ---
 
@@ -92,7 +94,7 @@ instalável no celular para anunciar em menos de um minuto.
 | **Prisma 6**                           | ORM, migrations e seed                           |
 | **PostgreSQL (Neon)**                  | Banco relacional em nuvem                        |
 | **swagger-ui-express**                 | Documentação interativa em `/docs`               |
-| **JWT + bcryptjs**                     | Autenticação _(Sprint 2)_                        |
+| **jsonwebtoken + bcryptjs**            | Autenticação e hash de senha                     |
 | **Helmet · CORS · express-rate-limit** | Camada de segurança HTTP                         |
 | **Pino**                               | Log estruturado                                  |
 | **Vitest + Supertest**                 | Testes de integração das rotas                   |
@@ -308,6 +310,9 @@ Base local: `http://localhost:4000` · Prefixo versionado: `/api/v1`
 
 | Método   | Rota                         | Auth | Descrição                                      |
 | -------- | ---------------------------- | ---- | ---------------------------------------------- |
+| `POST`   | `/api/v1/auth/register`      | —    | Cria conta e já devolve o token                |
+| `POST`   | `/api/v1/auth/login`         | —    | Troca e-mail e senha por um token              |
+| `GET`    | `/api/v1/auth/me`            | 🔒   | Dados do usuário autenticado                   |
 | `GET`    | `/api/v1/announcements`      | —    | Vitrine pública, com filtros e paginação       |
 | `POST`   | `/api/v1/announcements`      | 🔒   | Cria um anúncio                                |
 | `GET`    | `/api/v1/announcements/mine` | 🔒   | Meus anúncios                                  |
@@ -325,9 +330,12 @@ Base local: `http://localhost:4000` · Prefixo versionado: `/api/v1`
 **Filtros da listagem:** `?category=` `?type=` `?condition=` `?status=` `?q=` `?sort=`
 `?page=` `?limit=`
 
-> 🔒 Na Sprint 1 a identificação usa o cabeçalho `X-User-Id` — a alternativa que o próprio
-> edital admite ("separação por IDs de usuário"). Na Sprint 2 vira JWT, e **só o middleware
-> muda**: rotas, service e repositório ficam intactos.
+> 🔒 Rotas protegidas exigem `Authorization: Bearer <token>`. Obtenha o token em
+> `/api/v1/auth/login` — ou clique em **Authorize** no [`/docs`](http://localhost:4000/docs)
+> e cole lá uma vez só.
+
+**Contas de demonstração** (criadas pelo `db:seed`, todas com a senha `circula2026`):
+`ana.lima@edu.unifor.br` · `carlos.souza@edu.unifor.br` · `mariana.costa@edu.unifor.br`
 
 ### Regra de negócio central
 
@@ -528,8 +536,8 @@ preço final **antes** de validá-lo.
 | ------ | --------------------------------------------------------------- | ------ |
 | **0**  | Monorepo, TypeScript strict, lint, CI, ambiente rodando         | ✅     |
 | **1**  | Modelagem, Prisma + PostgreSQL, CRUD de anúncios, filtros, docs | ✅     |
-| **2**  | Autenticação JWT, regra de propriedade, validação robusta       | 🚧     |
-| **3**  | Landing Page desktop com vitrine e filtros                      | ⬜     |
+| **2**  | Autenticação JWT, regra de propriedade, validação robusta       | ✅     |
+| **3**  | Landing Page desktop com vitrine e filtros                      | 🚧     |
 | **4**  | App mobile: criar anúncio, meus anúncios, detalhe               | ⬜     |
 | **5**  | PWA: manifesto, Service Worker, offline, instalação             | ⬜     |
 | **6**  | Deploy da API e do PWA + hardening de produção                  | ⬜     |

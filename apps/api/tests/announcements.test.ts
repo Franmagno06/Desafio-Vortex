@@ -7,18 +7,27 @@ import {
   InMemoryAnnouncementsRepository,
   makeAnnouncement,
 } from './helpers/in-memory-repository.js';
+import { InMemoryUsersRepository } from './helpers/in-memory-users.js';
+import { signToken } from '../src/modules/auth/jwt.js';
 
 /**
  * Testes de integração do CRUD de anúncios.
  *
  * A requisição atravessa a pilha inteira — helmet, CORS, body parser,
- * validação Zod, rota, service, mapper — e só a persistência é substituída
- * por uma implementação em memória. É o ponto de equilíbrio: exercita o
- * comportamento real da API sem precisar de um PostgreSQL no CI.
+ * autenticação JWT, validação Zod, rota, service, mapper — e só a persistência
+ * é substituída por uma implementação em memória. É o ponto de equilíbrio:
+ * exercita o comportamento real da API sem precisar de um PostgreSQL no CI.
+ *
+ * Sprint 2: os testes deixaram de mandar `X-User-Id` e passaram a assinar um
+ * JWT de verdade. Repare que **nenhuma expectativa sobre regra de negócio
+ * mudou** — só a forma de provar quem é o usuário.
  */
 
 const ANA = '11111111-1111-4111-8111-111111111111';
 const CARLOS = '22222222-2222-4222-8222-222222222222';
+
+/** Monta o cabeçalho `Authorization` com um token assinado para o usuário. */
+const auth = (userId: string) => `Bearer ${signToken(userId)}`;
 
 const validPayload = {
   title: 'Cálculo Volume 1 — Stewart',
@@ -31,21 +40,20 @@ const validPayload = {
 };
 
 let repository: InMemoryAnnouncementsRepository;
+let users: InMemoryUsersRepository;
 let app: Express;
 
 beforeEach(() => {
   repository = new InMemoryAnnouncementsRepository();
-  app = createApp({
-    announcementsRepository: repository,
-    countUsers: () => Promise.resolve(6),
-  });
+  users = new InMemoryUsersRepository();
+  app = createApp({ announcementsRepository: repository, usersRepository: users });
 });
 
 describe('POST /api/v1/announcements', () => {
   it('cria um anúncio de venda e devolve 201 com Location', async () => {
     const response = await request(app)
       .post('/api/v1/announcements')
-      .set('X-User-Id', ANA)
+      .set('Authorization', auth(ANA))
       .send(validPayload);
 
     expect(response.status).toBe(201);
@@ -61,7 +69,7 @@ describe('POST /api/v1/announcements', () => {
   it('cria uma doação sem preço', async () => {
     const response = await request(app)
       .post('/api/v1/announcements')
-      .set('X-User-Id', ANA)
+      .set('Authorization', auth(ANA))
       .send({ ...validPayload, type: 'DOACAO', priceCents: null });
 
     expect(response.status).toBe(201);
@@ -71,7 +79,7 @@ describe('POST /api/v1/announcements', () => {
   it('recusa doação COM preço — o coração da regra de negócio', async () => {
     const response = await request(app)
       .post('/api/v1/announcements')
-      .set('X-User-Id', ANA)
+      .set('Authorization', auth(ANA))
       .send({ ...validPayload, type: 'DOACAO', priceCents: 5000 });
 
     expect(response.status).toBe(422);
@@ -83,7 +91,7 @@ describe('POST /api/v1/announcements', () => {
 
     const response = await request(app)
       .post('/api/v1/announcements')
-      .set('X-User-Id', ANA)
+      .set('Authorization', auth(ANA))
       .send(semPreco);
 
     expect(response.status).toBe(422);
@@ -99,7 +107,7 @@ describe('POST /api/v1/announcements', () => {
   it('recusa campos obrigatórios inválidos e aponta o campo', async () => {
     const response = await request(app)
       .post('/api/v1/announcements')
-      .set('X-User-Id', ANA)
+      .set('Authorization', auth(ANA))
       .send({ ...validPayload, title: 'ab', imageUrl: 'nao-e-url' });
 
     expect(response.status).toBe(422);
@@ -110,7 +118,7 @@ describe('POST /api/v1/announcements', () => {
   it('nunca expõe o hash de senha do autor', async () => {
     const response = await request(app)
       .post('/api/v1/announcements')
-      .set('X-User-Id', ANA)
+      .set('Authorization', auth(ANA))
       .send(validPayload);
 
     expect(JSON.stringify(response.body)).not.toContain('passwordHash');
@@ -216,7 +224,7 @@ describe('PATCH /api/v1/announcements/:id', () => {
   it('atualiza um campo do próprio anúncio', async () => {
     const response = await request(app)
       .patch(`/api/v1/announcements/${ID}`)
-      .set('X-User-Id', ANA)
+      .set('Authorization', auth(ANA))
       .send({ title: 'Título novo e suficientemente longo' });
 
     expect(response.status).toBe(200);
@@ -228,7 +236,7 @@ describe('PATCH /api/v1/announcements/:id', () => {
     // zerar o preço de um anúncio de venda sem ninguém ter pedido.
     const response = await request(app)
       .patch(`/api/v1/announcements/${ID}`)
-      .set('X-User-Id', ANA)
+      .set('Authorization', auth(ANA))
       .send({ status: 'RESERVADO' });
 
     expect(response.status).toBe(200);
@@ -239,7 +247,7 @@ describe('PATCH /api/v1/announcements/:id', () => {
   it('zera o preço ao converter uma venda em doação', async () => {
     const response = await request(app)
       .patch(`/api/v1/announcements/${ID}`)
-      .set('X-User-Id', ANA)
+      .set('Authorization', auth(ANA))
       .send({ type: 'DOACAO' });
 
     expect(response.status).toBe(200);
@@ -249,13 +257,13 @@ describe('PATCH /api/v1/announcements/:id', () => {
 
   it('recusa converter doação em venda sem informar preço', async () => {
     // Caminho inverso do teste acima: virar VENDA exige preço explícito.
-    await request(app).patch(`/api/v1/announcements/${ID}`).set('X-User-Id', ANA).send({
+    await request(app).patch(`/api/v1/announcements/${ID}`).set('Authorization', auth(ANA)).send({
       type: 'DOACAO',
     });
 
     const response = await request(app)
       .patch(`/api/v1/announcements/${ID}`)
-      .set('X-User-Id', ANA)
+      .set('Authorization', auth(ANA))
       .send({ type: 'VENDA' });
 
     expect(response.status).toBe(422);
@@ -265,7 +273,7 @@ describe('PATCH /api/v1/announcements/:id', () => {
   it('recusa doação com preço explícito no corpo', async () => {
     const response = await request(app)
       .patch(`/api/v1/announcements/${ID}`)
-      .set('X-User-Id', ANA)
+      .set('Authorization', auth(ANA))
       .send({ type: 'DOACAO', priceCents: 3000 });
 
     expect(response.status).toBe(422);
@@ -274,7 +282,7 @@ describe('PATCH /api/v1/announcements/:id', () => {
   it('impede que outro usuário edite o anúncio', async () => {
     const response = await request(app)
       .patch(`/api/v1/announcements/${ID}`)
-      .set('X-User-Id', CARLOS)
+      .set('Authorization', auth(CARLOS))
       .send({ title: 'Tentativa de sequestro do anúncio' });
 
     expect(response.status).toBe(403);
@@ -284,7 +292,7 @@ describe('PATCH /api/v1/announcements/:id', () => {
   it('recusa corpo vazio', async () => {
     const response = await request(app)
       .patch(`/api/v1/announcements/${ID}`)
-      .set('X-User-Id', ANA)
+      .set('Authorization', auth(ANA))
       .send({});
 
     expect(response.status).toBe(422);
@@ -299,7 +307,9 @@ describe('DELETE /api/v1/announcements/:id', () => {
   });
 
   it('exclui logicamente: some da listagem mas continua na tabela', async () => {
-    const response = await request(app).delete(`/api/v1/announcements/${ID}`).set('X-User-Id', ANA);
+    const response = await request(app)
+      .delete(`/api/v1/announcements/${ID}`)
+      .set('Authorization', auth(ANA));
 
     expect(response.status).toBe(204);
     expect(response.body).toEqual({});
@@ -317,7 +327,7 @@ describe('DELETE /api/v1/announcements/:id', () => {
   it('impede que outro usuário exclua o anúncio', async () => {
     const response = await request(app)
       .delete(`/api/v1/announcements/${ID}`)
-      .set('X-User-Id', CARLOS);
+      .set('Authorization', auth(CARLOS));
 
     expect(response.status).toBe(403);
   });
@@ -333,7 +343,9 @@ describe('GET /api/v1/announcements/mine', () => {
   });
 
   it('devolve apenas os anúncios do usuário identificado', async () => {
-    const response = await request(app).get('/api/v1/announcements/mine').set('X-User-Id', ANA);
+    const response = await request(app)
+      .get('/api/v1/announcements/mine')
+      .set('Authorization', auth(ANA));
 
     expect(response.status).toBe(200);
     expect(response.body.items).toHaveLength(2);
@@ -343,7 +355,9 @@ describe('GET /api/v1/announcements/mine', () => {
   it('não é confundida com a rota /:id', async () => {
     // A ordem de registro no router importa: se `/:id` viesse antes,
     // "mine" seria tratado como id e a validação de UUID daria 422.
-    const response = await request(app).get('/api/v1/announcements/mine').set('X-User-Id', ANA);
+    const response = await request(app)
+      .get('/api/v1/announcements/mine')
+      .set('Authorization', auth(ANA));
 
     expect(response.status).not.toBe(422);
   });
@@ -366,7 +380,9 @@ describe('Catálogo e estatísticas', () => {
       totalAnnouncements: 3,
       activeAnnouncements: 3,
       donations: 2,
-      users: 6,
+      // Sprint 2: a contagem passou a vir do repositório de usuários real
+      // (antes era um valor fixo injetado). Aqui não cadastramos ninguém.
+      users: 0,
     });
   });
 

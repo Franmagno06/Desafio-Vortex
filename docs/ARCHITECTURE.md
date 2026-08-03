@@ -148,6 +148,59 @@ com o corpo de outra aplicação. Um conflito que se disfarça de sucesso é pio
 
 ---
 
+## ADR 010 — Autenticação por JWT em cabeçalho, não por cookie de sessão
+
+**Contexto.** O PWA fica na Vercel e a API na Render — **domínios diferentes**. O edital
+pede autenticação como diferencial.
+
+**Decisão.** JWT assinado com HMAC-SHA256, enviado em `Authorization: Bearer <token>`,
+guardado no `localStorage` do cliente. Validade de 7 dias.
+
+**Alternativa descartada.** Cookie `httpOnly` com sessão no servidor. Exigiria
+`SameSite=None; Secure` por causa do cross-site, CORS com credenciais e um armazenamento de
+sessão no backend — que a Render free zera a cada deploy.
+
+**Consequência aceita.** Token no `localStorage` é acessível por JavaScript e portanto
+vulnerável a XSS. Em troca, ficamos imunes a CSRF por construção (o navegador não anexa o
+cabeçalho sozinho). Nesta arquitetura CSRF é o risco mais provável, e a defesa contra XSS é
+não injetar HTML de terceiros — o React já escapa por padrão.
+
+**Nota.** JWT garante **integridade, não sigilo**: o payload é base64 e qualquer um lê. Por
+isso ele carrega apenas o id do usuário, que já é público.
+
+---
+
+## ADR 011 — bcrypt com 12 rodadas
+
+**Decisão.** `bcryptjs` com custo 12 (~250ms por hash).
+
+**Justificativa.** A lentidão é o recurso: quem roubar o banco gasta 250ms por tentativa em
+cada senha que quiser adivinhar. Com SHA-256 o mesmo ataque testaria bilhões por segundo.
+Escolhemos `bcryptjs` (JavaScript puro) em vez de `bcrypt` ou `argon2` porque estes são
+módulos nativos — exigiriam ferramentas de compilação no Windows e no build da Render.
+
+**Consequência.** O schema limita a senha a 72 bytes, porque o bcrypt **trunca
+silenciosamente** o que passar disso — sem o limite, duas senhas com o mesmo prefixo de 72
+bytes autenticariam uma à outra.
+
+---
+
+## ADR 012 — Respostas de login deliberadamente pouco informativas
+
+**Decisão.** Login responde 401 com a **mesma mensagem** para e-mail inexistente e senha
+errada. E sempre executa um `bcrypt.compare`, mesmo quando o usuário não existe.
+
+**Justificativa.** Mensagens distintas transformariam a tela de login num validador de quais
+e-mails têm conta. E, mesmo com mensagem única, a _diferença de tempo_ entre "retorna na
+hora" e "roda o bcrypt antes" permitiria a mesma enumeração pelo relógio — um ataque de
+canal lateral. Comparar contra um hash descartável iguala os dois caminhos.
+
+**Contraste proposital.** O **cadastro** devolve 409 dizendo que o e-mail já existe. Ali a
+informação é necessária: a pessoa precisa saber que deve fazer login. A regra não é "nunca
+revele nada", é revelar só onde há motivo legítimo.
+
+---
+
 ## Convenções de código
 
 | Tema               | Convenção                                                              |

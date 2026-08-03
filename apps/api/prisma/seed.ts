@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 /**
  * Popula o banco com dados realistas de campus.
@@ -17,13 +18,17 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 /**
- * Hash placeholder da Sprint 1.
+ * Senha de demonstração — Sprint 2.
  *
- * A coluna `passwordHash` é obrigatória no schema, mas o login só existe na
- * Sprint 2. Este valor NÃO é uma senha válida e não autentica ninguém — na
- * Sprint 2 o seed passa a gerar hashes reais com bcrypt.
+ * Todos os usuários do seed compartilham esta senha para facilitar o teste
+ * manual e a gravação do vídeo. O hash é gerado de verdade com bcrypt, então o
+ * login funciona exatamente como o de um usuário real.
+ *
+ * ⚠️ Isto vale só para dados de exemplo. Em produção cada usuário define a
+ * própria senha no cadastro.
  */
-const PLACEHOLDER_HASH = '$2a$10$sprint2.placeholder.nao.autentica.ninguem.ainda';
+const DEMO_PASSWORD = 'circula2026';
+const BCRYPT_ROUNDS = 12;
 
 const users = [
   {
@@ -458,8 +463,12 @@ async function main() {
     console.log(`   Limpou ${removed.count} usuário(s) de seed anteriores.`);
   }
 
+  // Um hash só para todos: gerar 6 hashes bcrypt custaria ~1,5s à toa, já que
+  // a senha de demonstração é a mesma.
+  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, BCRYPT_ROUNDS);
+
   await prisma.user.createMany({
-    data: users.map((user) => ({ ...user, passwordHash: PLACEHOLDER_HASH })),
+    data: users.map((user) => ({ ...user, passwordHash })),
   });
   console.log(`   ✓ ${users.length} usuários criados`);
 
@@ -495,11 +504,15 @@ async function main() {
 
   console.log(`\n   Distribuição: ${sales} vendas · ${donations} doações · ${trades} trocas`);
   console.log('\n✅ Seed concluído.\n');
-  console.log('   Para testar as rotas protegidas, use um destes ids no cabeçalho X-User-Id:');
+  console.log('   Contas de demonstração — todas com a senha ' + `"${DEMO_PASSWORD}"`);
   users.slice(0, 3).forEach((user) => {
-    console.log(`     ${user.id}  (${user.name})`);
+    console.log(`     ${user.email.padEnd(36)} (${user.name})`);
   });
-  console.log('');
+  console.log('\n   Para obter um token:');
+  console.log(
+    '     POST /api/v1/auth/login  { "email": "...", "password": "' + DEMO_PASSWORD + '" }',
+  );
+  console.log('   Depois envie: Authorization: Bearer <token>\n');
 }
 
 main()

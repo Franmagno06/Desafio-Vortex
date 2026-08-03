@@ -13,7 +13,6 @@ import { AppError } from './shared/errors.js';
 import { errorHandler, notFoundHandler } from './middlewares/error-handler.js';
 import { healthRouter } from './modules/health/health.routes.js';
 import { buildOpenApiDocument } from './docs/openapi.js';
-import { prisma } from './lib/prisma.js';
 import {
   type AnnouncementsRepository,
   prismaAnnouncementsRepository,
@@ -21,6 +20,9 @@ import {
 import { createAnnouncementsService } from './modules/announcements/announcements.service.js';
 import { createAnnouncementsRouter } from './modules/announcements/announcements.routes.js';
 import { createCatalogRouter } from './modules/catalog/catalog.routes.js';
+import { type UsersRepository, prismaUsersRepository } from './modules/auth/auth.repository.js';
+import { createAuthService } from './modules/auth/auth.service.js';
+import { createAuthRouter } from './modules/auth/auth.routes.js';
 
 /** Prefixo versionado: permite evoluir a API sem quebrar clientes já instalados. */
 export const API_PREFIX = '/api/v1';
@@ -34,7 +36,7 @@ export const API_PREFIX = '/api/v1';
  */
 export interface AppDependencies {
   announcementsRepository?: AnnouncementsRepository;
-  countUsers?: () => Promise<number>;
+  usersRepository?: UsersRepository;
 }
 
 /**
@@ -48,9 +50,10 @@ export function createApp(deps: AppDependencies = {}): Express {
   const app = express();
 
   const announcementsRepository = deps.announcementsRepository ?? prismaAnnouncementsRepository;
-  const countUsers = deps.countUsers ?? (() => prisma.user.count());
+  const usersRepository = deps.usersRepository ?? prismaUsersRepository;
 
   const announcementsService = createAnnouncementsService(announcementsRepository);
+  const authService = createAuthService(usersRepository);
 
   // A ordem dos middlewares é a ordem de execução. Ela importa.
 
@@ -109,10 +112,12 @@ export function createApp(deps: AppDependencies = {}): Express {
   // --- Rotas -------------------------------------------------------------
   app.use(healthRouter); // /health fica fora do prefixo, é infraestrutura
 
+  app.use(`${API_PREFIX}/auth`, createAuthRouter(authService));
   app.use(`${API_PREFIX}/announcements`, createAnnouncementsRouter(announcementsService));
-  app.use(API_PREFIX, createCatalogRouter(announcementsService, countUsers));
-
-  // Sprint 2: app.use(`${API_PREFIX}/auth`, authRouter)
+  app.use(
+    API_PREFIX,
+    createCatalogRouter(announcementsService, () => authService.countUsers()),
+  );
 
   // --- Documentação interativa -------------------------------------------
   const openApiDocument = buildOpenApiDocument();

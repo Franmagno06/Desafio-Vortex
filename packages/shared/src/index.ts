@@ -10,4 +10,5 @@ export * from './domain/money.js';
 export * from './domain/rules.js';
 export * from './schemas/pagination.js';
 export * from './schemas/announcement.js';
+export * from './schemas/auth.js';
 export * from './types/announcement.js';

@@ -13,6 +13,10 @@ export default defineConfig({
       // repositório em memória e nunca abrem conexão. Este valor só satisfaz
       // o schema no boot — nenhum teste toca o Postgres.
       DATABASE_URL: 'postgresql://test:test@localhost:5432/circula_test',
+      // Segredo fixo e fake: os testes precisam de um valor determinístico e
+      // este nunca sai da suíte.
+      JWT_SECRET: 'segredo-de-teste-com-mais-de-32-caracteres-para-passar-na-validacao',
+      JWT_EXPIRES_IN: '1h',
     },
   },
 });
