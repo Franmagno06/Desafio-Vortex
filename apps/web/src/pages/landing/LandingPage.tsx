@@ -42,12 +42,7 @@ function FinalCta() {
           <Button to="/anunciar" size="lg" variant="secondary">
             Anunciar meu primeiro item
           </Button>
-          <Button
-            to="/explorar"
-            size="lg"
-            variant="ghost"
-            className="text-brand-100 hover:bg-brand-700 hover:text-white"
-          >
+          <Button to="/explorar" size="lg" variant="ghostOnDark">
             Explorar a vitrine
           </Button>
         </div>
