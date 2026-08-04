@@ -538,6 +538,17 @@ e errou a **ordem** — e o código _lia_ como se funcionasse. Só um teste auto
 Ficou a lição de que código morto não avisa que é morto; foi preciso reordenar para resolver o
 preço final **antes** de validá-lo.
 
+**f) "Funciona na minha máquina" — o CI vermelho por duas sprints (Sprints 2–3).** O pipeline
+do GitHub Actions estava falhando enquanto todo o meu portão de qualidade passava localmente.
+Duas causas: (1) o `typecheck` quebrava porque o workflow não rodava `prisma generate` — o
+cliente tipado do Prisma é um artefato **gerado**, não versionado, e o runner começa do zero;
+localmente ele existia porque eu o gerara na Sprint 1; (2) o `format:check` reprovava 6
+arquivos que o formatador do editor havia reescrito **depois** do meu check local, antes do
+commit. Corrigi adicionando o passo `prisma generate` ao CI e reformatando os arquivos. A
+lição mais importante não foi técnica: **eu deveria ter olhado o resultado do CI ao fim da
+Sprint 1**, e não descoberto o problema duas sprints depois. CI verde existe para pegar
+exatamente o que passa por acidente no ambiente local.
+
 ---
 
 ## 🗺 Roadmap por sprint

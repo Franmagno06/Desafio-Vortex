@@ -39,11 +39,7 @@ export function CategoryFilter({ categories, isLoading, selected, onSelect }: Pr
   const total = categories.reduce((sum, category) => sum + category.count, 0);
 
   return (
-    <div
-      className="flex flex-wrap gap-2"
-      role="group"
-      aria-label="Filtrar anúncios por categoria"
-    >
+    <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar anúncios por categoria">
       <FilterChip
         label="Todos"
         count={total}

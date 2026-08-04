@@ -25,13 +25,11 @@ export function Showcase() {
   const [category, setCategory] = useState<string | undefined>(undefined);
 
   const { data: categories, isPending: loadingCategories } = useCategories();
-  const {
-    data,
-    isPending,
-    isError,
-    isFetching,
-    refetch,
-  } = useAnnouncements({ category, limit: 8, sort: 'recent' });
+  const { data, isPending, isError, isFetching, refetch } = useAnnouncements({
+    category,
+    limit: 8,
+    sort: 'recent',
+  });
 
   const announcements = data?.items ?? [];
 
@@ -42,9 +40,7 @@ export function Showcase() {
           <h2 id="vitrine" className="text-3xl font-bold tracking-tight text-ink-900 sm:text-4xl">
             Últimos anúncios
           </h2>
-          <p className="mt-2 text-ink-500">
-            O que estudantes do campus estão oferecendo agora.
-          </p>
+          <p className="mt-2 text-ink-500">O que estudantes do campus estão oferecendo agora.</p>
         </div>
 
         <Button to="/explorar" variant="secondary" size="sm">
@@ -112,9 +108,7 @@ export function Showcase() {
 
 function CardGrid({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div
-      className={`grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 ${className ?? ''}`}
-    >
+    <div className={`grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 ${className ?? ''}`}>
       {children}
     </div>
   );

@@ -35,6 +35,13 @@ jobs:
       - name: Compilar pacote compartilhado
         run: npm run build:shared
 
+      # Gera o cliente tipado do Prisma (Prisma.AnnouncementWhereInput, etc.).
+      # Sem este passo o typecheck da API falha SÓ no CI: localmente o cliente
+      # já foi gerado durante o desenvolvimento, mas o runner começa do zero.
+      # `prisma generate` lê apenas o schema — não precisa de banco.
+      - name: Gerar cliente do Prisma
+        run: npm run db:generate --workspace @circula/api
+
       - name: Formatação (Prettier)
         run: npm run format:check
 

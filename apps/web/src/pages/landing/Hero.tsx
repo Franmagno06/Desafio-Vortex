@@ -35,10 +35,9 @@ export function Hero() {
           </h1>
 
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-ink-700">
-            Livros, jalecos, calculadoras, componentes eletrônicos e móveis que ficariam
-            parados numa gaveta. No <strong className="font-semibold">Circula</strong>, eles
-            encontram quem está chegando — por doação, troca ou um preço justo entre
-            estudantes.
+            Livros, jalecos, calculadoras, componentes eletrônicos e móveis que ficariam parados
+            numa gaveta. No <strong className="font-semibold">Circula</strong>, eles encontram quem
+            está chegando — por doação, troca ou um preço justo entre estudantes.
           </p>
 
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">

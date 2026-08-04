@@ -34,8 +34,8 @@ function FinalCta() {
           Tem algo parado que ainda serve?
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-brand-100">
-          Um livro na estante, um jaleco no armário, uma calculadora na gaveta. Para você é
-          espaço ocupado; para um calouro, é o semestre que cabe no orçamento.
+          Um livro na estante, um jaleco no armário, uma calculadora na gaveta. Para você é espaço
+          ocupado; para um calouro, é o semestre que cabe no orçamento.
         </p>
 
         <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">

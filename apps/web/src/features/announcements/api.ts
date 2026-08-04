@@ -1,9 +1,4 @@
-import type {
-  AnnouncementDTO,
-  CategoryOptionDTO,
-  Paginated,
-  StatsDTO,
-} from '@circula/shared';
+import type { AnnouncementDTO, CategoryOptionDTO, Paginated, StatsDTO } from '@circula/shared';
 import { api } from '@/lib/api-client';
 
 /**
@@ -46,9 +41,7 @@ function buildQueryString(query: AnnouncementQuery): string {
 }
 
 export function listAnnouncements(query: AnnouncementQuery = {}) {
-  return api.get<Paginated<AnnouncementDTO>>(
-    `/api/v1/announcements${buildQueryString(query)}`,
-  );
+  return api.get<Paginated<AnnouncementDTO>>(`/api/v1/announcements${buildQueryString(query)}`);
 }
 
 export function getAnnouncement(id: string) {

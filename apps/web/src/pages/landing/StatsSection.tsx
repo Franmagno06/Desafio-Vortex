@@ -18,7 +18,12 @@ export function StatsSection() {
   // completa sem contadores do que uma faixa de erro no meio do conteúdo.
   if (isError) return null;
 
-  const items: Array<{ icon: LucideIcon; value: number | undefined; label: string; accent?: boolean }> = [
+  const items: Array<{
+    icon: LucideIcon;
+    value: number | undefined;
+    label: string;
+    accent?: boolean;
+  }> = [
     { icon: Package, value: data?.activeAnnouncements, label: 'itens disponíveis agora' },
     { icon: HeartHandshake, value: data?.donations, label: 'oferecidos como doação', accent: true },
     { icon: Users, value: data?.users, label: 'estudantes participando' },

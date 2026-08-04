@@ -8,26 +8,33 @@
  * classe utilitária: `--color-brand-600` habilita `bg-brand-600`,
  * `text-brand-600`, `border-brand-600`, etc.
  *
- * Paleta: verde-azulado (sustentabilidade / reuso) + âmbar como destaque
- * reservado para DOAÇÃO, o gesto que queremos incentivar no campus.
+ * Paleta: azul-cobalto institucional da UNIFOR (identidade da universidade)
+ * + laranja como destaque, reservado para DOAÇÃO — o gesto que queremos
+ * incentivar no campus.
+ *
+ * Toda a interface consome estes tokens (`brand-*`, `accent-*`); trocar a
+ * paleta é editar SÓ este bloco. Foi o que fizemos aqui: do verde-azulado
+ * original para o azul da Unifor, sem tocar em nenhum componente. Os shades
+ * foram escolhidos para preservar o contraste que os componentes assumem
+ * (fundos escuros em 700/800, superfícies claras em 50/100).
  */
 @theme {
-  --color-brand-50: #f0fdfa;
-  --color-brand-100: #ccfbf1;
-  --color-brand-200: #99f6e4;
-  --color-brand-300: #5eead4;
-  --color-brand-400: #2dd4bf;
-  --color-brand-500: #14b8a6;
-  --color-brand-600: #0d9488;
-  --color-brand-700: #0f766e;
-  --color-brand-800: #115e59;
-  --color-brand-900: #134e4a;
-  --color-brand-950: #042f2e;
+  --color-brand-50: #eef3ff;
+  --color-brand-100: #dbe5ff;
+  --color-brand-200: #bccffe;
+  --color-brand-300: #8fabfc;
+  --color-brand-400: #5f80f8;
+  --color-brand-500: #3a5bef;
+  --color-brand-600: #2143df;
+  --color-brand-700: #1c37c4;
+  --color-brand-800: #1c319e;
+  --color-brand-900: #1c2f81;
+  --color-brand-950: #141e4d;
 
-  --color-accent-100: #fef3c7;
-  --color-accent-400: #fbbf24;
-  --color-accent-500: #f59e0b;
-  --color-accent-600: #d97706;
+  --color-accent-100: #ffedcc;
+  --color-accent-400: #f9a825;
+  --color-accent-500: #f39200;
+  --color-accent-600: #b45309;
 
   --color-ink-500: #64748b;
   --color-ink-700: #334155;
