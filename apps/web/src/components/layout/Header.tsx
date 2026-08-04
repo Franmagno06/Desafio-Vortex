@@ -1,6 +1,7 @@
 import { Link, NavLink } from 'react-router';
 import { Leaf } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { useAuth } from '@/features/auth/AuthContext';
 import { cn } from '@/lib/cn';
 
 /**
@@ -32,16 +33,59 @@ export function Header() {
           <HeaderLink to="/como-funciona">Como funciona</HeaderLink>
         </nav>
 
-        <div className="flex items-center gap-2">
-          <Button to="/entrar" variant="ghost" size="sm" className="hidden sm:inline-flex">
-            Entrar
-          </Button>
-          <Button to="/anunciar" size="sm">
-            Anunciar item
-          </Button>
-        </div>
+        <HeaderActions />
       </div>
     </header>
+  );
+}
+
+/**
+ * Ações do cabeçalho, dependentes da sessão.
+ *
+ * Enquanto `isLoading` (validando o token guardado), não mostramos nem "Entrar"
+ * nem o avatar. Mostrar "Entrar" e trocar por avatar meio segundo depois
+ * produz um piscar que passa a impressão de que o app "deslogou sozinho".
+ */
+function HeaderActions() {
+  const { isAuthenticated, isLoading, user } = useAuth();
+
+  if (isLoading) {
+    return <div className="h-9 w-32" aria-hidden="true" />;
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center gap-2">
+        <Button to="/entrar" variant="ghost" size="sm" className="hidden sm:inline-flex">
+          Entrar
+        </Button>
+        <Button to="/app/anunciar" size="sm">
+          Anunciar item
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <Button to="/app/anunciar" size="sm">
+        Anunciar item
+      </Button>
+
+      <Link
+        to="/app/perfil"
+        aria-label={`Perfil de ${user?.name ?? 'usuário'}`}
+        className="shrink-0 rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+      >
+        {user?.avatarUrl ? (
+          <img src={user.avatarUrl} alt="" className="size-9 rounded-full object-cover" />
+        ) : (
+          <span className="flex size-9 items-center justify-center rounded-full bg-brand-100 text-sm font-semibold text-brand-800">
+            {user?.name.charAt(0)}
+          </span>
+        )}
+      </Link>
+    </div>
   );
 }
 

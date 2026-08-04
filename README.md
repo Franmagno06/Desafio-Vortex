@@ -10,7 +10,7 @@ Processo Seletivo para Estágio Full-Stack 2026.
 <!-- prettier-ignore -->
 | | |
 |---|---|
-| **Status** | 🚧 Em desenvolvimento — Sprint 3 concluída |
+| **Status** | 🚧 Em desenvolvimento — Sprint 4 concluída |
 | **Landing (produção)** | _a publicar na Sprint 6_ |
 | **API (produção)** | _a publicar na Sprint 6_ |
 | **Documentação da API** | OpenAPI 3.1 interativo em `/docs` |
@@ -63,9 +63,13 @@ instalável no celular para anunciar em menos de um minuto.
 **Aplicativo PWA (mobile)**
 
 - ⬜ Instalação na tela inicial (Android/iOS/desktop)
-- ⬜ Cadastro e login
-- ⬜ Formulário de anúncio (título, descrição, categoria, preço ou doação, URL de imagem)
-- ⬜ Meus anúncios — editar e excluir
+- ✅ Cadastro e login com JWT
+- ✅ Formulário de anúncio (título, descrição, categoria, preço ou doação, URL de imagem)
+- ✅ Campo de preço some quando o tipo é doação ou troca
+- ✅ Pré-visualização da imagem antes de publicar
+- ✅ Meus anúncios — com exclusão
+- ✅ Barra de navegação inferior (experiência de app nativo)
+- ✅ Busca com debounce, paginação e detalhe do anúncio
 - ⬜ Funcionamento offline dos dados já carregados
 
 **API REST**
@@ -111,7 +115,7 @@ instalável no celular para anunciar em menos de um minuto.
 | **Tailwind CSS 4**   | Estilo e design tokens                  |
 | **React Router 8**   | Roteamento e layouts aninhados          |
 | **TanStack Query 5** | Cache de dados do servidor              |
-| **React Hook Form**  | Formulários _(Sprint 4)_                |
+| **React Hook Form**  | Formulários (com os schemas Zod)        |
 | **vite-plugin-pwa**  | Manifesto e Service Worker _(Sprint 5)_ |
 
 ### Compartilhado — `packages/shared`
@@ -148,13 +152,17 @@ circula/
 │  │  └─ tests/                 # integração (Vitest + Supertest, sem banco)
 │  └─ web/                      # PWA (React 19 + Vite)
 │     ├─ src/
-│     │  ├─ app/router.tsx      # rotas e layout compartilhado
+│     │  ├─ app/router.tsx      # rotas, layouts e proteção de sessão
 │     │  ├─ components/
-│     │  │  ├─ ui/              # Button, Badge, Skeleton
-│     │  │  └─ layout/          # Header, Footer
+│     │  │  ├─ ui/              # Button, Badge, Skeleton, Field, Toast
+│     │  │  └─ layout/          # Header, Footer, BottomNav
 │     │  ├─ features/
-│     │  │  └─ announcements/   # api · hooks · card · filtros
-│     │  ├─ pages/landing/      # Hero, Stats, HowItWorks, Showcase
+│     │  │  ├─ announcements/   # api · hooks · mutations · card · filtros
+│     │  │  └─ auth/            # contexto de sessão, storage do token
+│     │  ├─ pages/
+│     │  │  ├─ landing/         # Hero, Stats, HowItWorks, Showcase
+│     │  │  ├─ auth/            # login e cadastro
+│     │  │  └─ app/             # home, anunciar, meus anúncios, perfil
 │     │  ├─ lib/
 │     │  │  ├─ api-client.ts    # único ponto que fala HTTP com a API
 │     │  │  └─ query-client.ts  # cache e chaves do TanStack Query
@@ -559,8 +567,8 @@ exatamente o que passa por acidente no ambiente local.
 | **1**  | Modelagem, Prisma + PostgreSQL, CRUD de anúncios, filtros, docs | ✅     |
 | **2**  | Autenticação JWT, regra de propriedade, validação robusta       | ✅     |
 | **3**  | Landing Page desktop com vitrine e filtros                      | ✅     |
-| **4**  | App mobile: criar anúncio, meus anúncios, detalhe               | 🚧     |
-| **5**  | PWA: manifesto, Service Worker, offline, instalação             | ⬜     |
+| **4**  | App mobile: criar anúncio, meus anúncios, detalhe               | ✅     |
+| **5**  | PWA: manifesto, Service Worker, offline, instalação             | 🚧     |
 | **6**  | Deploy da API e do PWA + hardening de produção                  | ⬜     |
 | **7**  | README final, Diário de Bordo consolidado e vídeo               | ⬜     |
 

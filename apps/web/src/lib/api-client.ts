@@ -42,8 +42,27 @@ export interface RequestOptions extends Omit<RequestInit, 'body'> {
   body?: unknown;
 }
 
+/**
+ * Callback que devolve o token atual, ou `null` se ninguém estiver logado.
+ *
+ * É injetado por `setAuthTokenProvider` em vez de o cliente importar o módulo
+ * de storage direto. Motivo: sem isso teríamos `api-client → storage` e
+ * `auth → api-client`, e o dia em que o storage precisasse reportar um erro
+ * pela API fecharia um ciclo de importação. Injetar mantém a seta em um
+ * sentido só.
+ */
+type TokenProvider = () => string | null;
+
+let getAuthToken: TokenProvider = () => null;
+
+export function setAuthTokenProvider(provider: TokenProvider): void {
+  getAuthToken = provider;
+}
+
 export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { body, headers, ...rest } = options;
+
+  const token = getAuthToken();
 
   let response: Response;
 
@@ -53,6 +72,9 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
       headers: {
         Accept: 'application/json',
         ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+        // O token entra ANTES do spread de `headers` para que uma chamada
+        // possa sobrescrevê-lo de propósito (útil em teste).
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...headers,
       },
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),

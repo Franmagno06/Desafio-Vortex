@@ -73,7 +73,21 @@ export const createAnnouncementSchema = announcementFieldsSchema
     }
   });
 
-export type CreateAnnouncementInput = z.infer<typeof createAnnouncementSchema>;
+/**
+ * Tipo de SAÍDA: o que existe depois do parse, com os defaults aplicados.
+ * É o que o service e a API manipulam — aqui `priceCents` sempre existe.
+ */
+export type CreateAnnouncementInput = z.output<typeof createAnnouncementSchema>;
+
+/**
+ * Tipo de ENTRADA: o que o formulário preenche, ANTES do parse.
+ *
+ * Difere do de saída por causa do `.default(null)`: na entrada `priceCents`
+ * pode ser omitido, na saída ele sempre existe. O React Hook Form precisa dos
+ * dois separados — `useForm<Entrada, unknown, Saída>` — senão o `zodResolver`
+ * não tipa (foi exatamente o erro que o `tsc` apontou nesta sprint).
+ */
+export type CreateAnnouncementFormInput = z.input<typeof createAnnouncementSchema>;
 
 /**
  * Atualização parcial (PATCH).
