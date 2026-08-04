@@ -19,9 +19,14 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    // Sem proxy de propósito: em dev o navegador chama a API na porta 3333 e
+    // Sem proxy de propósito: em dev o navegador chama a API na porta 4000 e
     // passa pelo CORS de verdade — o mesmo caminho que acontece em produção.
     // Se o CORS estiver mal configurado, a gente descobre agora, não no deploy.
+
+    // Expõe o dev server na rede local para abrir o app no celular e testar a
+    // instalação do PWA em um aparelho de verdade (Sprint 5). O Vite passa a
+    // imprimir a URL "Network:" ao subir.
+    host: true,
   },
   build: {
     outDir: 'dist',

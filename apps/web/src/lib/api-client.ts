@@ -27,16 +27,79 @@ export class ApiError extends Error {
   }
 }
 
-/** Erro de rede (offline, DNS, servidor fora do ar) — distinto de erro HTTP. */
+/**
+ * Falha antes de existir uma resposta HTTP: offline, DNS, servidor fora do ar
+ * ou bloqueio de CORS.
+ *
+ * O `fetch` **não conta qual dos casos aconteceu** — por segurança, o navegador
+ * devolve a mesma rejeição opaca para todos. Então usamos o único sinal
+ * disponível para separar os dois cenários que exigem ações opostas do usuário:
+ *
+ *  - `navigator.onLine === false` → o problema é a internet dele.
+ *  - online, mas a requisição falhou → o problema é do servidor (fora do ar,
+ *    URL errada ou CORS bloqueando).
+ *
+ * Essa distinção não é preciosismo: durante o desenvolvimento a aplicação foi
+ * aberta por `127.0.0.1` enquanto o CORS liberava só `localhost`, e a mensagem
+ * "verifique sua conexão" mandou investigar a internet — que estava perfeita.
+ * Mensagem de erro que aponta a causa errada custa mais tempo que erro nenhum.
+ */
 export class NetworkError extends Error {
+  /** `true` quando o navegador se considera sem rede. */
+  readonly isOffline: boolean;
+
   constructor(cause: unknown) {
-    super('Não foi possível conectar à API. Verifique sua conexão.');
+    const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
+
+    super(
+      offline
+        ? 'Você está sem conexão com a internet.'
+        : 'O servidor não respondeu. Verifique se a API está no ar.',
+    );
+
     this.name = 'NetworkError';
+    this.isOffline = offline;
     this.cause = cause;
   }
 }
 
-const BASE_URL = (import.meta.env.VITE_API_URL ?? 'http://localhost:4000').replace(/\/$/, '');
+/**
+ * URL base da API.
+ *
+ * O ajuste abaixo existe para testar o PWA num celular de verdade. Ao abrir o
+ * app pelo IP da máquina na rede (`http://192.168.0.10:5173`), o
+ * `VITE_API_URL` configurado aponta para `http://localhost:4000` — e
+ * `localhost`, **no celular, é o próprio celular**. Nenhuma requisição
+ * chegaria ao servidor.
+ *
+ * Quando a API está configurada como local mas a página veio de outro host,
+ * trocamos o hostname pelo mesmo da página, preservando a porta. Em produção
+ * nada disso roda: lá o `VITE_API_URL` aponta para o domínio da Render, que
+ * não é localhost.
+ */
+function resolveBaseUrl(): string {
+  const configured = (import.meta.env.VITE_API_URL ?? 'http://localhost:4000').replace(/\/$/, '');
+
+  if (typeof window === 'undefined') return configured;
+
+  try {
+    const apiUrl = new URL(configured);
+    const isLocalApi = apiUrl.hostname === 'localhost' || apiUrl.hostname === '127.0.0.1';
+    const pageHost = window.location.hostname;
+    const pageIsLocal = pageHost === 'localhost' || pageHost === '127.0.0.1';
+
+    if (isLocalApi && !pageIsLocal) {
+      apiUrl.hostname = pageHost;
+      return apiUrl.toString().replace(/\/$/, '');
+    }
+
+    return configured;
+  } catch {
+    return configured;
+  }
+}
+
+const BASE_URL = resolveBaseUrl();
 
 export interface RequestOptions extends Omit<RequestInit, 'body'> {
   body?: unknown;

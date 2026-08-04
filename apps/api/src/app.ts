@@ -7,7 +7,7 @@ import { rateLimit } from 'express-rate-limit';
 import { pinoHttp } from 'pino-http';
 import swaggerUi from 'swagger-ui-express';
 
-import { env, isTest } from './config/env.js';
+import { env, isProduction, isTest } from './config/env.js';
 import { logger } from './shared/logger.js';
 import { AppError } from './shared/errors.js';
 import { errorHandler, notFoundHandler } from './middlewares/error-handler.js';
@@ -26,6 +26,44 @@ import { createAuthRouter } from './modules/auth/auth.routes.js';
 
 /** Prefixo versionado: permite evoluir a API sem quebrar clientes já instalados. */
 export const API_PREFIX = '/api/v1';
+
+/**
+ * Origens de desenvolvimento liberadas automaticamente.
+ *
+ * Em **produção esta função sempre devolve `false`** — lá vale só a allowlist
+ * explícita do `CORS_ORIGINS`. Em desenvolvimento ela evita dois atritos reais:
+ *
+ *  1. `localhost` e `127.0.0.1` são o mesmo servidor, mas **origens diferentes**
+ *     para o navegador. Abrir a aplicação por um enquanto o CORS libera só o
+ *     outro faz toda requisição falhar — e, como o `fetch` não expõe o motivo,
+ *     a interface acaba mostrando "verifique sua conexão" para quem está com
+ *     internet perfeita. Aconteceu neste projeto.
+ *
+ *  2. Testar o PWA no celular exige acessar pelo IP da máquina na rede local
+ *     (`192.168.x.x`). Sem esta regra, seria preciso editar o `.env` e
+ *     reiniciar a API a cada troca de rede.
+ */
+function isAllowedDevOrigin(origin: string): boolean {
+  if (isProduction) return false;
+
+  try {
+    const { hostname } = new URL(origin);
+
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]') {
+      return true;
+    }
+
+    // Faixas privadas da RFC 1918 — a rede de casa ou do campus.
+    return (
+      /^10\./.test(hostname) ||
+      /^192\.168\./.test(hostname) ||
+      /^172\.(1[6-9]|2\d|3[01])\./.test(hostname)
+    );
+  } catch {
+    // Origem malformada: trata como não autorizada.
+    return false;
+  }
+}
 
 /**
  * Dependências injetáveis.
@@ -72,7 +110,7 @@ export function createApp(deps: AppDependencies = {}): Express {
     cors({
       origin(origin, callback) {
         // `!origin` cobre curl, Insomnia, Postman e requisições same-origin.
-        if (!origin || env.CORS_ORIGINS.includes(origin)) {
+        if (!origin || env.CORS_ORIGINS.includes(origin) || isAllowedDevOrigin(origin)) {
           callback(null, true);
           return;
         }

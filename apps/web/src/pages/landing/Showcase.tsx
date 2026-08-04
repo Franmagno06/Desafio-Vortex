@@ -5,6 +5,14 @@ import { AnnouncementCardSkeleton } from '@/components/ui/Skeleton';
 import { AnnouncementCard } from '@/features/announcements/AnnouncementCard';
 import { CategoryFilter } from '@/features/announcements/CategoryFilter';
 import { useAnnouncements, useCategories } from '@/features/announcements/hooks';
+import { ApiError, NetworkError } from '@/lib/api-client';
+
+/** Traduz a falha de carregamento numa instrução útil para o usuário. */
+function describeLoadError(error: unknown): string {
+  if (error instanceof NetworkError) return error.message;
+  if (error instanceof ApiError) return error.message;
+  return 'Tente novamente em instantes.';
+}
 
 /**
  * Vitrine pública da Landing Page.
@@ -25,7 +33,7 @@ export function Showcase() {
   const [category, setCategory] = useState<string | undefined>(undefined);
 
   const { data: categories, isPending: loadingCategories } = useCategories();
-  const { data, isPending, isError, isFetching, refetch } = useAnnouncements({
+  const { data, isPending, isError, isFetching, error, refetch } = useAnnouncements({
     category,
     limit: 8,
     sort: 'recent',
@@ -72,7 +80,10 @@ export function Showcase() {
           <EmptyState
             icon={WifiOff}
             title="Não foi possível carregar os anúncios"
-            description="Verifique sua conexão e tente novamente."
+            // A mensagem vem do erro, que já distingue "você está offline" de
+            // "o servidor não respondeu". Um texto fixo mandaria metade das
+            // pessoas investigar a própria internet sem motivo.
+            description={describeLoadError(error)}
             action={
               <Button onClick={() => void refetch()} variant="secondary" size="sm">
                 Tentar de novo
