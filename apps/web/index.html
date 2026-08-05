@@ -8,6 +8,19 @@
       name="description"
       content="Circula — o marketplace de economia circular do campus. Doe, venda e encontre livros, jalecos, calculadoras e materiais universitários."
     />
+
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+    <!--
+      O iOS ignora o manifest.webmanifest para o ícone da tela inicial: ele
+      exige a tag `apple-touch-icon`. Sem ela, o iPhone usa um print da página
+      como ícone — que fica ilegível em tamanho pequeno.
+    -->
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Circula" />
+
     <title>Circula — Economia circular do campus</title>
   </head>
   <body>

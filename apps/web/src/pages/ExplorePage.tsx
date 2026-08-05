@@ -6,6 +6,14 @@ import { AnnouncementCard } from '@/features/announcements/AnnouncementCard';
 import { CategoryFilter } from '@/features/announcements/CategoryFilter';
 import { useAnnouncements, useCategories } from '@/features/announcements/hooks';
 import { useDebouncedValue } from '@/lib/use-debounced-value';
+import { ApiError, NetworkError } from '@/lib/api-client';
+import { resolveListState, useListRetry } from '@/lib/query-state';
+
+/** Traduz a falha de carregamento numa instrução útil para o usuário. */
+function describeLoadError(error: unknown): string {
+  if (error instanceof NetworkError || error instanceof ApiError) return error.message;
+  return 'Tente novamente em instantes.';
+}
 
 /** Vitrine completa, com busca textual, filtro por categoria e paginação. */
 export function ExplorePage() {
@@ -22,13 +30,17 @@ export function ExplorePage() {
   const debouncedSearch = useDebouncedValue(search, 400);
 
   const { data: categories, isPending: loadingCategories } = useCategories();
-  const { data, isPending, isError, isFetching, refetch } = useAnnouncements({
+  const query = useAnnouncements({
     category,
     // A API exige no mínimo 2 caracteres na busca; abaixo disso, nem envia.
     q: debouncedSearch.trim().length >= 2 ? debouncedSearch.trim() : undefined,
     page,
     limit: 12,
   });
+
+  const { data, isFetching, error } = query;
+  const state = resolveListState(query, data?.items.length);
+  const retry = useListRetry();
 
   /** Qualquer mudança de filtro volta para a página 1. */
   function handleCategory(next: string | undefined) {
@@ -71,24 +83,38 @@ export function ExplorePage() {
         />
       </div>
 
-      <div className="mt-8" aria-live="polite" aria-busy={isPending}>
-        {isPending ? (
+      <div className="mt-8" aria-live="polite" aria-busy={state === 'loading'}>
+        {state === 'loading' ? (
           <Grid>
             {Array.from({ length: 12 }).map((_, index) => (
               <AnnouncementCardSkeleton key={index} />
             ))}
           </Grid>
-        ) : isError ? (
+        ) : state === 'paused' ? (
+          // Sem rede e sem nada em cache para esta busca. Antes esta situação
+          // ficava presa em skeletons, porque o React Query pausa em silêncio.
           <Empty
-            title="Não foi possível carregar"
-            description="Verifique sua conexão e tente novamente."
+            title="Sem conexão para buscar"
+            description="Você está offline e estes itens ainda não tinham sido carregados. Eles aparecem assim que a conexão voltar."
             action={
-              <Button onClick={() => void refetch()} variant="secondary" size="sm">
+              <Button onClick={retry} variant="secondary" size="sm">
                 Tentar de novo
               </Button>
             }
           />
-        ) : data.items.length === 0 ? (
+        ) : state === 'error' ? (
+          <Empty
+            title="Não foi possível carregar"
+            // Mensagem vinda do erro: distingue "você está offline" de
+            // "o servidor não respondeu". Ver `NetworkError` em api-client.
+            description={describeLoadError(error)}
+            action={
+              <Button onClick={retry} variant="secondary" size="sm">
+                Tentar de novo
+              </Button>
+            }
+          />
+        ) : state === 'empty' ? (
           <Empty
             title="Nenhum item encontrado"
             description={
@@ -102,7 +128,7 @@ export function ExplorePage() {
               </Button>
             }
           />
-        ) : (
+        ) : data ? (
           <>
             <Grid className={isFetching ? 'opacity-60 transition-opacity' : 'transition-opacity'}>
               {data.items.map((announcement) => (
@@ -142,7 +168,7 @@ export function ExplorePage() {
               </nav>
             )}
           </>
-        )}
+        ) : null}
       </div>
     </div>
   );

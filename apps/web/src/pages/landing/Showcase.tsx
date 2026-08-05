@@ -6,6 +6,7 @@ import { AnnouncementCard } from '@/features/announcements/AnnouncementCard';
 import { CategoryFilter } from '@/features/announcements/CategoryFilter';
 import { useAnnouncements, useCategories } from '@/features/announcements/hooks';
 import { ApiError, NetworkError } from '@/lib/api-client';
+import { resolveListState, useListRetry } from '@/lib/query-state';
 
 /** Traduz a falha de carregamento numa instrução útil para o usuário. */
 function describeLoadError(error: unknown): string {
@@ -33,13 +34,12 @@ export function Showcase() {
   const [category, setCategory] = useState<string | undefined>(undefined);
 
   const { data: categories, isPending: loadingCategories } = useCategories();
-  const { data, isPending, isError, isFetching, error, refetch } = useAnnouncements({
-    category,
-    limit: 8,
-    sort: 'recent',
-  });
+  const query = useAnnouncements({ category, limit: 8, sort: 'recent' });
 
+  const { data, isFetching, error } = query;
   const announcements = data?.items ?? [];
+  const state = resolveListState(query, announcements.length);
+  const retry = useListRetry();
 
   return (
     <section className="mx-auto max-w-6xl px-4 sm:px-6" aria-labelledby="vitrine">
@@ -69,14 +69,28 @@ export function Showcase() {
       {/* `aria-live="polite"` faz o leitor de tela anunciar a mudança de
           resultado depois de trocar o filtro — sem isso, quem não enxerga
           clicaria no chip e não receberia retorno nenhum. */}
-      <div className="mt-8" aria-live="polite" aria-busy={isPending}>
-        {isPending ? (
+      <div className="mt-8" aria-live="polite" aria-busy={state === 'loading'}>
+        {state === 'loading' ? (
           <CardGrid>
             {Array.from({ length: 8 }).map((_, index) => (
               <AnnouncementCardSkeleton key={index} />
             ))}
           </CardGrid>
-        ) : isError ? (
+        ) : state === 'paused' ? (
+          // Sem rede e sem cache para esta consulta. O React Query pausa em
+          // silêncio nesse caso; sem tratar aqui, a seção ficaria eternamente
+          // em skeletons.
+          <EmptyState
+            icon={WifiOff}
+            title="Sem conexão"
+            description="Estes anúncios ainda não tinham sido carregados. Eles aparecem assim que a conexão voltar."
+            action={
+              <Button onClick={retry} variant="secondary" size="sm">
+                Tentar de novo
+              </Button>
+            }
+          />
+        ) : state === 'error' ? (
           <EmptyState
             icon={WifiOff}
             title="Não foi possível carregar os anúncios"
@@ -85,12 +99,12 @@ export function Showcase() {
             // pessoas investigar a própria internet sem motivo.
             description={describeLoadError(error)}
             action={
-              <Button onClick={() => void refetch()} variant="secondary" size="sm">
+              <Button onClick={retry} variant="secondary" size="sm">
                 Tentar de novo
               </Button>
             }
           />
-        ) : announcements.length === 0 ? (
+        ) : state === 'empty' ? (
           <EmptyState
             icon={PackageOpen}
             title="Nenhum item nesta categoria ainda"

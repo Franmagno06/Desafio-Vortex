@@ -19,8 +19,38 @@ export const queryClient = new QueryClient({
        */
       staleTime: 60_000,
 
-      /** Quanto tempo o dado fica no cache depois que ninguém mais o usa. */
-      gcTime: 5 * 60_000,
+      /**
+       * Quanto tempo o dado fica no cache depois que ninguém mais o usa.
+       *
+       * 24h e não 5min porque o cache é persistido em disco (ver
+       * `query-persister.ts`): com `gcTime` curto, o React Query descartaria as
+       * queries da memória antes de o app reabrir, e não haveria o que restaurar.
+       */
+      gcTime: 24 * 60 * 60_000,
+
+      /**
+       * `always`: o React Query nunca pausa uma requisição por achar que está
+       * sem rede — ele sempre tenta, e sempre reporta o erro se falhar.
+       *
+       * Motivo, verificado na prática: nos modos `online` (padrão) e
+       * `offlineFirst`, uma falha de rede coloca a query em
+       * `status: 'pending'` + `fetchStatus: 'paused'`. Nesse estado ela **não
+       * dispara erro, não tenta de novo e não responde a `refetch()`** —
+       * a tela fica presa em skeletons indefinidamente, sem saída para o
+       * usuário. Foi o que aconteceu em `/explorar` com a API fora do ar, e
+       * `refetch()` no botão "Tentar de novo" não resolvia.
+       *
+       * O pressuposto desses modos — "sem rede, não adianta tentar" — é falso
+       * nesta arquitetura: quem responde offline aqui é o **Service Worker**,
+       * pelo cache. Uma requisição feita sem internet pode perfeitamente ter
+       * sucesso. Pausar por conta própria atrapalha em vez de ajudar.
+       *
+       * Com `always`, a divisão de responsabilidades fica limpa:
+       *   - Service Worker → serve o que tem em cache, com ou sem rede
+       *   - React Query    → busca, e propaga o erro quando ninguém atende
+       *   - interface      → mostra a mensagem e o botão de tentar de novo
+       */
+      networkMode: 'always',
 
       /**
        * Não repetir requisição que falhou por erro do cliente (4xx).
@@ -38,6 +68,19 @@ export const queryClient = new QueryClient({
 
       /** Evita recarregar tudo sempre que a aba volta a ter foco. */
       refetchOnWindowFocus: false,
+
+      /**
+       * Ao voltar a ter rede, revalida o que estiver na tela. É o que troca o
+       * dado do cache offline pelo atual assim que a conexão retorna.
+       */
+      refetchOnReconnect: true,
+    },
+    mutations: {
+      // Mesmo motivo das queries: sem isto, tocar em "Publicar" offline deixaria
+      // a mutação pausada em silêncio, sem erro e sem feedback nenhum.
+      // O reenvio offline é responsabilidade do Background Sync no Service
+      // Worker (ver `src/sw.ts`), não do React Query.
+      networkMode: 'always',
     },
   },
 });

@@ -32,10 +32,27 @@ export default tseslint.config(
   },
 
   {
-    // Scripts de linha de comando: a saída no terminal É a interface deles.
-    files: ['**/prisma/seed.ts', '**/scripts/**/*.ts'],
+    // Scripts de linha de comando: a saída no terminal É a interface deles,
+    // e rodam no Node — não no navegador, então `Buffer` e `console` existem.
+    files: ['**/prisma/seed.ts', '**/scripts/**/*.{ts,mjs,js}'],
+    languageOptions: {
+      globals: { ...globals.node },
+    },
     rules: {
       'no-console': 'off',
+      'no-undef': 'off',
+    },
+  },
+
+  {
+    /**
+     * Service Worker: roda em `ServiceWorkerGlobalScope`, não em `window`.
+     * Sem estes globais o ESLint acusaria `self`, `caches` e `clients` como
+     * indefinidos.
+     */
+    files: ['**/src/sw.ts'],
+    languageOptions: {
+      globals: { ...globals.serviceworker },
     },
   },
 

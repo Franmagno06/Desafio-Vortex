@@ -10,7 +10,7 @@ Processo Seletivo para Estágio Full-Stack 2026.
 <!-- prettier-ignore -->
 | | |
 |---|---|
-| **Status** | 🚧 Em desenvolvimento — Sprint 4 concluída |
+| **Status** | 🚧 Em desenvolvimento — Sprint 5 concluída |
 | **Landing (produção)** | _a publicar na Sprint 6_ |
 | **API (produção)** | _a publicar na Sprint 6_ |
 | **Documentação da API** | OpenAPI 3.1 interativo em `/docs` |
@@ -62,7 +62,7 @@ instalável no celular para anunciar em menos de um minuto.
 
 **Aplicativo PWA (mobile)**
 
-- ⬜ Instalação na tela inicial (Android/iOS/desktop)
+- ✅ Instalação na tela inicial (Android/iOS/desktop)
 - ✅ Cadastro e login com JWT
 - ✅ Formulário de anúncio (título, descrição, categoria, preço ou doação, URL de imagem)
 - ✅ Campo de preço some quando o tipo é doação ou troca
@@ -70,7 +70,9 @@ instalável no celular para anunciar em menos de um minuto.
 - ✅ Meus anúncios — com exclusão
 - ✅ Barra de navegação inferior (experiência de app nativo)
 - ✅ Busca com debounce, paginação e detalhe do anúncio
-- ⬜ Funcionamento offline dos dados já carregados
+- ✅ Funcionamento offline dos dados já carregados
+- ✅ Service Worker autoral com 6 estratégias de cache
+- ✅ Background Sync: publica offline e reenvia ao voltar a rede
 
 **API REST**
 
@@ -107,16 +109,16 @@ instalável no celular para anunciar em menos de um minuto.
 
 ### Frontend — `apps/web`
 
-| Tecnologia           | Papel                                   |
-| -------------------- | --------------------------------------- |
-| **React 19**         | Biblioteca de interface                 |
-| **TypeScript 5.9**   | Tipagem estática                        |
-| **Vite 8**           | Build e dev server                      |
-| **Tailwind CSS 4**   | Estilo e design tokens                  |
-| **React Router 8**   | Roteamento e layouts aninhados          |
-| **TanStack Query 5** | Cache de dados do servidor              |
-| **React Hook Form**  | Formulários (com os schemas Zod)        |
-| **vite-plugin-pwa**  | Manifesto e Service Worker _(Sprint 5)_ |
+| Tecnologia           | Papel                                       |
+| -------------------- | ------------------------------------------- |
+| **React 19**         | Biblioteca de interface                     |
+| **TypeScript 5.9**   | Tipagem estática                            |
+| **Vite 8**           | Build e dev server                          |
+| **Tailwind CSS 4**   | Estilo e design tokens                      |
+| **React Router 8**   | Roteamento e layouts aninhados              |
+| **TanStack Query 5** | Cache de dados do servidor                  |
+| **React Hook Form**  | Formulários (com os schemas Zod)            |
+| **vite-plugin-pwa**  | Manifesto e Service Worker (injectManifest) |
 
 ### Compartilhado — `packages/shared`
 
@@ -165,8 +167,11 @@ circula/
 │     │  │  └─ app/             # home, anunciar, meus anúncios, perfil
 │     │  ├─ lib/
 │     │  │  ├─ api-client.ts    # único ponto que fala HTTP com a API
-│     │  │  └─ query-client.ts  # cache e chaves do TanStack Query
+│     │  │  ├─ query-client.ts  # cache e chaves do TanStack Query
+│     │  │  └─ query-state.ts   # estados de lista (inclui o "pausado")
+│     │  ├─ sw.ts               # ⭐ Service Worker autoral
 │     │  └─ styles/global.css   # design tokens do Tailwind v4
+│     ├─ public/icons/          # ícones do PWA (any + maskable)
 │     └─ index.html
 ├─ packages/
 │  └─ shared/                   # contratos comuns (enums, schemas, helpers)
@@ -568,8 +573,8 @@ exatamente o que passa por acidente no ambiente local.
 | **2**  | Autenticação JWT, regra de propriedade, validação robusta       | ✅     |
 | **3**  | Landing Page desktop com vitrine e filtros                      | ✅     |
 | **4**  | App mobile: criar anúncio, meus anúncios, detalhe               | ✅     |
-| **5**  | PWA: manifesto, Service Worker, offline, instalação             | 🚧     |
-| **6**  | Deploy da API e do PWA + hardening de produção                  | ⬜     |
+| **5**  | PWA: manifesto, Service Worker, offline, instalação             | ✅     |
+| **6**  | Deploy da API e do PWA + hardening de produção                  | 🚧     |
 | **7**  | README final, Diário de Bordo consolidado e vídeo               | ⬜     |
 
 Relatório técnico detalhado de cada sprint: [`docs/walkthrough/`](docs/walkthrough/).
