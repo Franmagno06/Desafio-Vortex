@@ -156,9 +156,16 @@ export function buildOpenApiDocument(): Record<string, unknown> {
         '**Todos os erros** seguem o envelope `{ "error": { "code", "message", "details" } }`.',
       license: { name: 'MIT' },
     },
+    /**
+     * A URL relativa vem PRIMEIRO de propósito: é a que o Swagger UI usa por
+     * padrão, e `/` funciona em qualquer ambiente — local, preview ou
+     * produção. Deixar `http://localhost:4000` no topo faria o botão
+     * "Try it out" da documentação publicada tentar chamar a máquina de quem
+     * está lendo, e falhar.
+     */
     servers: [
+      { url: '/', description: 'Este servidor' },
       { url: 'http://localhost:4000', description: 'Desenvolvimento local' },
-      { url: '/', description: 'Ambiente atual' },
     ],
     tags: [
       { name: 'Autenticação', description: 'Cadastro, login e identidade' },

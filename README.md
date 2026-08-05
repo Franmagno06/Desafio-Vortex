@@ -10,9 +10,9 @@ Processo Seletivo para Estágio Full-Stack 2026.
 <!-- prettier-ignore -->
 | | |
 |---|---|
-| **Status** | 🚧 Em desenvolvimento — Sprint 5 concluída |
-| **Landing (produção)** | _a publicar na Sprint 6_ |
-| **API (produção)** | _a publicar na Sprint 6_ |
+| **Status** | 🚧 Sprint 6 concluída — publicação pendente |
+| **Landing (produção)** | _aguardando publicação na Vercel_ |
+| **API (produção)** | _aguardando publicação na Render_ |
 | **Documentação da API** | OpenAPI 3.1 interativo em `/docs` |
 
 ---
@@ -424,11 +424,23 @@ validar toda a regra de negócio sem subir um PostgreSQL no pipeline.
 
 ## ☁️ Deploy
 
-| Camada | Serviço | Status     |
-| ------ | ------- | ---------- |
-| PWA    | Vercel  | _Sprint 6_ |
-| API    | Render  | _Sprint 6_ |
-| Banco  | Neon    | _Sprint 1_ |
+| Camada | Serviço | Configuração                                        |
+| ------ | ------- | --------------------------------------------------- |
+| PWA    | Vercel  | [`vercel.json`](vercel.json)                        |
+| API    | Render  | [`render.yaml`](render.yaml) — blueprint versionado |
+| Banco  | Neon    | PostgreSQL gerenciado                               |
+
+**Passo a passo completo: [`docs/DEPLOY.md`](docs/DEPLOY.md)** — segredos a configurar,
+ordem das etapas (a API antes do PWA, e o CORS por último), keep-alive contra a
+hibernação da Render e guia de solução de problemas.
+
+Dois detalhes de produção que valem destacar:
+
+- **`start:prod` aplica as migrations antes de aceitar tráfego.** Nunca existe uma
+  janela em que o código é novo e o schema do banco é velho.
+- **O `sw.js` é servido com `max-age=0`.** Se o Service Worker fosse cacheado como os
+  demais arquivos, o navegador continuaria usando o SW antigo — que serve o app antigo
+  do precache — e **nenhum deploy chegaria ao usuário**.
 
 ---
 
@@ -574,8 +586,8 @@ exatamente o que passa por acidente no ambiente local.
 | **3**  | Landing Page desktop com vitrine e filtros                      | ✅     |
 | **4**  | App mobile: criar anúncio, meus anúncios, detalhe               | ✅     |
 | **5**  | PWA: manifesto, Service Worker, offline, instalação             | ✅     |
-| **6**  | Deploy da API e do PWA + hardening de produção                  | 🚧     |
-| **7**  | README final, Diário de Bordo consolidado e vídeo               | ⬜     |
+| **6**  | Deploy da API e do PWA + hardening de produção                  | ✅     |
+| **7**  | README final, Diário de Bordo consolidado e vídeo               | 🚧     |
 
 Relatório técnico detalhado de cada sprint: [`docs/walkthrough/`](docs/walkthrough/).
 

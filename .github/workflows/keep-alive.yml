@@ -1,0 +1,59 @@
+name: Keep-alive da API
+
+# Por que isto existe:
+#
+# O plano gratuito da Render **hiberna** o serviço após ~15 minutos sem
+# requisições. A próxima chamada acorda o container, o que leva de 30 a 60
+# segundos — tempo em que a aplicação parece quebrada.
+#
+# Isso é aceitável num projeto pessoal, mas não durante a gravação do vídeo de
+# 6 minutos nem quando a banca abrir o link para avaliar. Um ping periódico
+# mantém o serviço acordado.
+#
+# A rota chamada é o health check RASO (`/health`), que não toca o banco: o
+# objetivo é só manter o processo vivo, sem consumir conexões do Postgres.
+
+on:
+  schedule:
+    # A cada 10 minutos — abaixo do limite de 15 da Render.
+    # Nota: o agendador do GitHub Actions não é pontual e pode atrasar alguns
+    # minutos em horários de pico. Para a gravação do vídeo, vale abrir a URL
+    # manualmente uns 2 minutos antes.
+    - cron: '*/10 * * * *'
+
+  # Permite disparar na mão pela aba Actions, logo antes de gravar.
+  workflow_dispatch:
+
+jobs:
+  ping:
+    name: Ping /health
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Acordar a API
+        env:
+          # Configure em Settings → Secrets and variables → Actions → Variables
+          # Ex.: https://circula-api.onrender.com
+          API_URL: ${{ vars.API_URL }}
+        run: |
+          if [ -z "$API_URL" ]; then
+            echo "::warning::Variável API_URL não configurada — pulando o ping."
+            exit 0
+          fi
+
+          echo "Chamando $API_URL/health"
+
+          # `--max-time 90` porque um container hibernado demora para acordar:
+          # o timeout padrão do curl cortaria justamente a requisição que
+          # estamos tentando fazer.
+          status=$(curl -s -o /tmp/resposta.json -w "%{http_code}" \
+                    --max-time 90 "$API_URL/health" || echo "000")
+
+          echo "HTTP $status"
+          cat /tmp/resposta.json 2>/dev/null || true
+          echo ""
+
+          if [ "$status" != "200" ]; then
+            echo "::error::A API não respondeu 200 (recebido: $status)"
+            exit 1
+          fi

@@ -57,3 +57,4 @@ O que eu queria resolver nesta sessão.
 | [03](2026-08-03-sessao-03.md) | 03/08/2026 | 2 e 3  | Autenticação JWT, bcrypt e Landing Page            |
 | [04](2026-08-04-sessao-04.md) | 04/08/2026 | 4      | App mobile, correção do CI e tema UNIFOR           |
 | [05](2026-08-04-sessao-05.md) | 04/08/2026 | 5      | PWA: Service Worker, offline e instalação          |
+| [06](2026-08-04-sessao-06.md) | 04/08/2026 | 6      | Deploy: Render, Vercel, keep-alive e hardening     |

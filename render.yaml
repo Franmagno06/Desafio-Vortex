@@ -1,0 +1,63 @@
+# Blueprint de infraestrutura da API — Render.
+#
+# Descreve o serviço em código, em vez de configurá-lo clicando no painel.
+# Duas vantagens práticas: a configuração fica versionada junto do código (dá
+# para ver no histórico o que mudou e por quê) e recriar o serviço do zero é
+# apertar um botão, não repetir 15 campos de memória.
+#
+# Como usar: no painel da Render, New → Blueprint → aponte para este repositório.
+
+services:
+  - type: web
+    name: circula-api
+    runtime: node
+    plan: free
+    region: oregon # região gratuita da Render mais próxima do Neon us-east
+    branch: main
+
+    # O build roda a partir da RAIZ do monorepo, não de apps/api: o
+    # `npm ci` precisa enxergar o package-lock.json e os workspaces para
+    # linkar o @circula/shared corretamente.
+    #
+    # Ordem obrigatória:
+    #   1. npm ci             — instala tudo, respeitando o lockfile
+    #   2. build:shared       — a API importa @circula/shared já compilado
+    #   3. build:prod         — gera o cliente Prisma e compila a API
+    buildCommand: npm ci && npm run build:shared && npm run build:prod --workspace @circula/api
+
+    # `start:prod` aplica as migrations pendentes ANTES de aceitar tráfego.
+    # Se o deploy trouxer uma coluna nova, ela existe no banco antes da
+    # primeira requisição — nunca uma janela em que o código é novo e o
+    # schema é velho.
+    startCommand: npm run start:prod --workspace @circula/api
+
+    # A Render usa esta rota para saber se o serviço subiu. Apontamos para o
+    # health check RASO de propósito: ele não toca o banco, e é chamado com
+    # frequência demais para abrir conexão toda vez.
+    healthCheckPath: /health
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      # A Render injeta a porta; o nosso env.ts já lê PORT.
+      - key: PORT
+        value: 10000
+
+      - key: LOG_LEVEL
+        value: info
+
+      # `sync: false` = a Render PEDE o valor na primeira vez e o guarda
+      # cifrado. Segredo nenhum entra neste arquivo, que é público.
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+
+      # Domínio do PWA na Vercel. Sem barra no final — a comparação de origem
+      # do CORS é literal.
+      - key: CORS_ORIGINS
+        sync: false
+
+      - key: JWT_EXPIRES_IN
+        value: 7d
