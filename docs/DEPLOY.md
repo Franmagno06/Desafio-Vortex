@@ -67,8 +67,8 @@ node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
 ### 2.3 O que a Render vai executar
 
 ```
-build : npm ci && npm run build:shared && npm run build:prod --workspace @circula/api
-start : npm run start:prod --workspace @circula/api
+build : npm ci && npm run build --workspace=@circula/shared && npm run build:prod --workspace=@circula/api
+start : npm run start:prod --workspace=@circula/api
 ```
 
 O `start:prod` roda `prisma migrate deploy` **antes** de subir o servidor. Se o deploy
@@ -101,8 +101,27 @@ justamente para isso).
 ## 3. PWA — Vercel
 
 1. [vercel.com](https://vercel.com) → **Add New** → **Project** → importe o repositório
-2. A Vercel lê o [`vercel.json`](../vercel.json); **não** altere build nem output
-3. Em **Environment Variables**, adicione:
+
+2. ⚠️ **Confira o "Root Directory": tem que ser a raiz do repositório**, não `apps/web`
+   nem `apps/api`.
+
+   Na tela de importação, o campo **Root Directory** deve estar vazio ou como `./`. Se a
+   Vercel tiver escolhido uma subpasta sozinha (ela faz isso ao detectar vários
+   `package.json` num monorepo), clique em **Edit** e volte para a raiz.
+
+   > **Por que isso quebra o build:** os comandos usam workspaces do npm, que só existem
+   > a partir da raiz. Rodando de dentro de `apps/api`, o npm procura os scripts no
+   > `package.json` daquela pasta e falha com
+   > `Missing script: "build:shared" — workspace @circula/api`. Foi exatamente o erro
+   > que apareceu na primeira tentativa de deploy deste projeto.
+
+   Se o projeto já foi criado com a pasta errada:
+   **Settings → Build and Deployment → Root Directory** → deixe vazio → **Save** →
+   **Deployments** → nos três pontinhos do último → **Redeploy**.
+
+3. A Vercel lê o [`vercel.json`](../vercel.json); **não** altere build nem output
+
+4. Em **Environment Variables**, adicione:
 
 | Variável       | Valor                                                       |
 | -------------- | ----------------------------------------------------------- |
@@ -112,7 +131,7 @@ justamente para isso).
 > **redeploy**; não basta salvar no painel. E nunca coloque segredo numa variável
 > `VITE_*`: ela vai para o JavaScript que qualquer pessoa lê.
 
-4. **Deploy**
+5. **Deploy**
 
 ### Por que o `vercel.json` é assim
 

@@ -23,7 +23,10 @@ services:
     #   1. npm ci             — instala tudo, respeitando o lockfile
     #   2. build:shared       — a API importa @circula/shared já compilado
     #   3. build:prod         — gera o cliente Prisma e compila a API
-    buildCommand: npm ci && npm run build:shared && npm run build:prod --workspace @circula/api
+    # Os workspaces sao referenciados explicitamente, sem passar por scripts da
+    # raiz: se a plataforma rodar o comando de outra pasta, `--workspace=` ainda
+    # resolve, enquanto `npm run build:shared` procuraria o script na pasta errada.
+    buildCommand: npm ci && npm run build --workspace=@circula/shared && npm run build:prod --workspace=@circula/api
 
     # `start:prod` aplica as migrations pendentes ANTES de aceitar tráfego.
     # Se o deploy trouxer uma coluna nova, ela existe no banco antes da
