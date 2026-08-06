@@ -20,13 +20,24 @@ services:
     # linkar o @circula/shared corretamente.
     #
     # Ordem obrigatória:
-    #   1. npm ci             — instala tudo, respeitando o lockfile
-    #   2. build:shared       — a API importa @circula/shared já compilado
-    #   3. build:prod         — gera o cliente Prisma e compila a API
+    #   1. npm ci --include=dev — instala tudo, respeitando o lockfile
+    #   2. build:shared         — a API importa @circula/shared já compilado
+    #   3. build:prod           — gera o cliente Prisma e compila a API
+    #
+    # O `--include=dev` NÃO é ruído — não remova. O `NODE_ENV=production` lá
+    # embaixo vale também durante o BUILD, e o npm lê essa variável para decidir
+    # o padrão da opção `omit`: com NODE_ENV=production, `npm ci` sozinho pula as
+    # devDependencies. Foi assim que o primeiro deploy morreu em
+    # `error TS2688: Cannot find type definition file for 'node'` — `@types/node`
+    # é devDependency. O `tsc` e o `prisma` escapavam da poda por estarem
+    # marcados como `devOptional` no lockfile, e é por isso que o erro só
+    # aparecia no passo 3, parecendo um problema do Prisma.
+    # O NODE_ENV=production continua valendo em runtime, que é onde ele importa.
+    #
     # Os workspaces sao referenciados explicitamente, sem passar por scripts da
     # raiz: se a plataforma rodar o comando de outra pasta, `--workspace=` ainda
     # resolve, enquanto `npm run build:shared` procuraria o script na pasta errada.
-    buildCommand: npm ci && npm run build --workspace=@circula/shared && npm run build:prod --workspace=@circula/api
+    buildCommand: npm ci --include=dev && npm run build --workspace=@circula/shared && npm run build:prod --workspace=@circula/api
 
     # `start:prod` aplica as migrations pendentes ANTES de aceitar tráfego.
     # Se o deploy trouxer uma coluna nova, ela existe no banco antes da

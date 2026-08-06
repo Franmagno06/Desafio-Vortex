@@ -67,9 +67,18 @@ node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
 ### 2.3 O que a Render vai executar
 
 ```
-build : npm ci && npm run build --workspace=@circula/shared && npm run build:prod --workspace=@circula/api
+build : npm ci --include=dev && npm run build --workspace=@circula/shared && npm run build:prod --workspace=@circula/api
 start : npm run start:prod --workspace=@circula/api
 ```
+
+> **Por que o `--include=dev`:** o `NODE_ENV=production` do `render.yaml` vale também
+> durante o build, e o npm usa essa variável para decidir o padrão da opção `omit`. Sem a
+> flag, o `npm ci` instala só as dependências de produção e a compilação morre em
+> `error TS2688: Cannot find type definition file for 'node'` — `@types/node` é
+> devDependency. O `tsc` e o `prisma` sobrevivem à poda por estarem marcados como
+> `devOptional` no lockfile, o que faz o erro aparecer só na compilação da API e parecer
+> um problema do Prisma. Ferramenta de build fica em `devDependencies`; quem se ajusta é
+> o comando de build.
 
 O `start:prod` roda `prisma migrate deploy` **antes** de subir o servidor. Se o deploy
 trouxer uma coluna nova, ela existe no banco antes da primeira requisição — nunca uma
