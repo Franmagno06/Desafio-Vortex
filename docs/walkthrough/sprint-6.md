@@ -1,6 +1,14 @@
 # Sprint 6 — Deploy e hardening de produção
 
-**Data:** 04/08/2026 · **Status:** ✅ configuração pronta e verificada · ⏳ publicação pendente das suas contas
+**Data:** 04/08/2026 · **Publicado em:** 06/08/2026 · **Status:** ✅ configuração pronta e verificada · ✅ **no ar**
+
+**Links de produção:**
+
+|              |                                       |
+| ------------ | ------------------------------------- |
+| PWA          | https://desafio-vortex-api.vercel.app |
+| API          | https://circula-api.onrender.com      |
+| Documentação | https://circula-api.onrender.com/docs |
 
 > Relatório técnico de estudo. Esta sprint entrega o **bônus mais forte** do edital
 > ("realizar o deploy real da API e do Frontend e disponibilizar os links funcionais").
@@ -13,15 +21,15 @@ Deixar o projeto pronto para publicar com o mínimo de passos manuais, e garanti
 que roda em produção se comporta de forma **diferente e mais segura** que em
 desenvolvimento.
 
-| Item                                            | Status      |
-| ----------------------------------------------- | ----------- |
-| Blueprint da Render versionado                  | ✅          |
-| Configuração da Vercel                          | ✅          |
-| Scripts de build e start de produção            | ✅          |
-| Migrations aplicadas antes de aceitar tráfego   | ✅          |
-| Keep-alive contra hibernação                    | ✅          |
-| Comportamento de produção verificado localmente | ✅          |
-| **Publicar** (criar contas e serviços)          | ⏳ **você** |
+| Item                                            | Status                    |
+| ----------------------------------------------- | ------------------------- |
+| Blueprint da Render versionado                  | ✅                        |
+| Configuração da Vercel                          | ✅                        |
+| Scripts de build e start de produção            | ✅                        |
+| Migrations aplicadas antes de aceitar tráfego   | ✅                        |
+| Keep-alive contra hibernação                    | ✅                        |
+| Comportamento de produção verificado localmente | ✅                        |
+| **Publicar** (criar contas e serviços)          | ✅ **você** — ver seção 5 |
 
 > **O que eu não faço:** criar contas, logar na Render/Vercel ou cadastrar segredos.
 > Isso exige suas credenciais. Toda a configuração está pronta para que publicar seja
@@ -184,7 +192,7 @@ npm run build:shared && npm run build --workspace @circula/api
 ```
 
 ```bash
-NODE_ENV=production CORS_ORIGINS="https://circula.vercel.app" node dist/server.js
+NODE_ENV=production CORS_ORIGINS="https://desafio-vortex-api.vercel.app" node dist/server.js
 ```
 
 | Verificação                            | Resultado                                |
@@ -204,7 +212,88 @@ NODE_ENV=production CORS_ORIGINS="https://circula.vercel.app" node dist/server.j
 
 ---
 
-## 5. 🔬 Testes manuais — depois de publicar
+## 5. 🛠️ Alterações manuais na publicação
+
+Toda a seção 3 defende **infraestrutura como código**. Esta seção é a contrapartida
+honesta: o que **não** deu para versionar, e por quê.
+
+O `render.yaml` e o `vercel.json` descrevem _o serviço_. Eles não descrevem, e não devem
+descrever, três coisas: quem é o dono da conta, quais são os segredos, e qual endereço a
+plataforma sorteou. Isso é feito na mão, uma vez, e é o que está registrado abaixo.
+
+### 5.1 O que foi feito no painel
+
+| #   | Onde   | Ação                                                                                                                                  |
+| --- | ------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Render | Criação da conta e do serviço `circula-api` via **New → Blueprint**, apontando para o repositório                                     |
+| 2   | Render | Preenchimento dos três segredos `sync: false`: `DATABASE_URL` (Neon), `JWT_SECRET` (gerado novo, diferente do local) e `CORS_ORIGINS` |
+| 3   | Vercel | Criação da conta e do projeto, ligado ao mesmo repositório, com **Root Directory** na raiz do monorepo                                |
+| 4   | Vercel | Cadastro da `VITE_API_URL` em _Environment Variables_ → **Production**, seguido de **redeploy**                                       |
+| 5   | Neon   | Banco de produção provisionado e populado uma única vez com `db:seed`, rodando da máquina local                                       |
+
+Os valores finais das duas variáveis que ligam as pontas:
+
+```
+# na Render
+CORS_ORIGINS=https://desafio-vortex-api.vercel.app
+
+# na Vercel
+VITE_API_URL=https://circula-api.onrender.com
+```
+
+Nenhuma das duas com barra no final. A comparação de origem do CORS é literal:
+`https://x.vercel.app/` **≠** `https://x.vercel.app`.
+
+### 5.2 O domínio que já tinha dono
+
+O `DEPLOY.md` sugeria `circula.vercel.app` como valor provisório do CORS. Esse
+subdomínio **pertence a outra pessoa** — hoje serve um app Next.js sem relação com este
+projeto. O endereço real que a Vercel atribuiu foi `desafio-vortex-api.vercel.app`.
+
+A lição é geral: `*.vercel.app` e `*.onrender.com` são namespaces globais, por ordem de
+chegada. O endereço só se conhece **depois** de criar o serviço — e é exatamente por isso
+que ele não pode estar chumbado no arquivo versionado.
+
+### 5.3 Os dois deploys que falharam antes deste
+
+Publicar não foi "conectar e pronto". Duas falhas apareceram, e as duas só existiam em
+produção:
+
+| Falha                                         | Causa                                                                                        | Correção                                        |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| Build da API morria em `TS2688`               | `NODE_ENV=production` fazia o `npm ci` podar as devDependencies, e `@types/node` é uma delas | `npm ci --include=dev` no `buildCommand`        |
+| PWA no ar acusando "O servidor não respondeu" | `VITE_API_URL` não chegou ao build; o bundle caiu no fallback `http://localhost:4000`        | Cadastrar a variável na Vercel **e redeployar** |
+
+A segunda é a mais instrutiva. O ajuste de rede local do `api-client` (feito na Sprint 4
+para testar o PWA no celular) reescreve o hostname quando a API está configurada como
+local mas a página veio de outro host. Em produção, sem a variável, ele transformou o
+fallback em `http://desafio-vortex-api.vercel.app:4000` — porta que não existe **e**
+conteúdo misto numa página `https`. Uma conveniência de desenvolvimento virou um sintoma
+enganoso em produção.
+
+O relato completo, com os prompts e o método de diagnóstico, está na
+[sessão 07 do Diário de Bordo](../ai-logbook/2026-08-05-sessao-07.md).
+
+### 5.4 Verificação após a publicação — 06/08/2026
+
+| Verificação                       | Resultado                                                    |
+| --------------------------------- | ------------------------------------------------------------ |
+| `GET /health`                     | ✅ `200` · `{"status":"ok"}`                                 |
+| `GET /health/ready`               | ✅ `200` · `{"database":"ok"}`                               |
+| `GET /api/v1/announcements`       | ✅ `200` com dados reais                                     |
+| Preflight da origem da Vercel     | ✅ `204` + `access-control-allow-origin` com o domínio certo |
+| Origem não autorizada             | ✅ **`403`** — a allowlist é mesmo restrita                  |
+| `/docs` publicado                 | ✅ `200`                                                     |
+| URL congelada no bundle da Vercel | ✅ `https://circula-api.onrender.com`                        |
+
+> Durante os testes o serviço devolveu `502` por alguns minutos. Não era falha: salvar
+> uma variável de ambiente na Render **reinicia o serviço**, e nessa janela não existe
+> deploy ativo para receber a requisição. O `uptimeSeconds` do `/health` confirmou depois
+> que o processo tinha acabado de subir.
+
+---
+
+## 6. 🔬 Testes manuais — depois de publicar
 
 Siga [`docs/DEPLOY.md`](../DEPLOY.md) e então:
 
@@ -282,7 +371,7 @@ Agora configure a variável `API_URL` no GitHub, espere um ciclo, e repita.
 
 ---
 
-## 6. Perguntas que a banca pode fazer
+## 7. Perguntas que a banca pode fazer
 
 <details>
 <summary><b>"Como você faz o deploy?"</b></summary>
@@ -324,7 +413,7 @@ eterno.
 
 ---
 
-## 7. Próxima sprint
+## 8. Próxima sprint
 
 **Sprint 7 — Entrega:** README final com os links de produção, Diário de Bordo
 consolidado, roteiro cronometrado e gravação do vídeo de 6 minutos.
