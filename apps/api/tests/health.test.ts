@@ -35,6 +35,25 @@ describe('GET /health/contract', () => {
   });
 });
 
+describe('GET /', () => {
+  it('devolve o índice do serviço em vez de 404', async () => {
+    const response = await request(app).get('/');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({ service: 'circula-api' });
+  });
+
+  it('aponta as portas de entrada da API', async () => {
+    const response = await request(app).get('/');
+
+    expect(response.body.links).toMatchObject({
+      docs: '/docs',
+      health: '/health',
+      api: '/api/v1',
+    });
+  });
+});
+
 describe('rota inexistente', () => {
   it('devolve 404 no envelope de erro padrão da API', async () => {
     const response = await request(app).get('/rota-que-nao-existe');

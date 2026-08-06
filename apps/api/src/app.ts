@@ -148,6 +148,32 @@ export function createApp(deps: AppDependencies = {}): Express {
   );
 
   // --- Rotas -------------------------------------------------------------
+
+  /**
+   * Índice da API.
+   *
+   * A raiz não serve página: isto é uma API REST, não um site. Sem esta rota
+   * ela caía no `notFoundHandler` e devolvia 404 — tecnicamente correto, mas
+   * indistinguível de um serviço quebrado para quem cola a URL no navegador.
+   *
+   * O índice não promete nada além do que existe: diz o que é o serviço e
+   * aponta as portas de entrada. É a diferença entre "está fora do ar" e
+   * "está no ar, a documentação é ali".
+   */
+  app.get('/', (_req, res) => {
+    res.json({
+      service: 'circula-api',
+      description: 'API do Circula — Marketplace de Economia Circular do Campus.',
+      version: process.env['npm_package_version'] ?? '0.2.0',
+      links: {
+        docs: '/docs',
+        openapi: '/openapi.json',
+        health: '/health',
+        api: API_PREFIX,
+      },
+    });
+  });
+
   app.use(healthRouter); // /health fica fora do prefixo, é infraestrutura
 
   app.use(`${API_PREFIX}/auth`, createAuthRouter(authService));
