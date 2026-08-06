@@ -10,10 +10,10 @@ Processo Seletivo para Estágio Full-Stack 2026.
 <!-- prettier-ignore -->
 | | |
 |---|---|
-| **Status** | 🚧 Sprint 6 concluída — publicação pendente |
-| **Landing (produção)** | _aguardando publicação na Vercel_ |
-| **API (produção)** | _aguardando publicação na Render_ |
-| **Documentação da API** | OpenAPI 3.1 interativo em `/docs` |
+| **Status** | ✅ **No ar** |
+| **Aplicação** | **https://desafio-vortex-api.vercel.app** |
+| **API** | **https://circula-api.onrender.com** |
+| **Documentação da API** | **https://circula-api.onrender.com/docs** |
 
 ---
 
@@ -424,11 +424,11 @@ validar toda a regra de negócio sem subir um PostgreSQL no pipeline.
 
 ## ☁️ Deploy
 
-| Camada | Serviço | Configuração                                        |
-| ------ | ------- | --------------------------------------------------- |
-| PWA    | Vercel  | [`vercel.json`](vercel.json)                        |
-| API    | Render  | [`render.yaml`](render.yaml) — blueprint versionado |
-| Banco  | Neon    | PostgreSQL gerenciado                               |
+| Camada | Serviço | URL                                                                    | Configuração                                        |
+| ------ | ------- | ---------------------------------------------------------------------- | --------------------------------------------------- |
+| PWA    | Vercel  | [desafio-vortex-api.vercel.app](https://desafio-vortex-api.vercel.app) | [`vercel.json`](vercel.json)                        |
+| API    | Render  | [circula-api.onrender.com](https://circula-api.onrender.com)           | [`render.yaml`](render.yaml) — blueprint versionado |
+| Banco  | Neon    | PostgreSQL gerenciado                                                  | migrations versionadas em `prisma/migrations`       |
 
 **Passo a passo completo: [`docs/DEPLOY.md`](docs/DEPLOY.md)** — segredos a configurar,
 ordem das etapas (a API antes do PWA, e o CORS por último), keep-alive contra a

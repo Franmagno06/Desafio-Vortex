@@ -1,5 +1,13 @@
 # Guia de deploy — Circula
 
+> ✅ **Já publicado.** Este guia continua valendo para reproduzir o ambiente do zero.
+>
+> |              |                                       |
+> | ------------ | ------------------------------------- |
+> | PWA          | https://desafio-vortex-api.vercel.app |
+> | API          | https://circula-api.onrender.com      |
+> | Documentação | https://circula-api.onrender.com/docs |
+
 Passo a passo para publicar a API na **Render**, o PWA na **Vercel** e o banco no
 **Neon**. Tudo em plano gratuito, sem cartão de crédito.
 
@@ -48,11 +56,11 @@ connection** (contém `-pooler` no host).
 A Render vai pedir os três valores marcados como `sync: false` (eles não ficam no
 arquivo justamente por serem segredos):
 
-| Variável       | Valor                                                                 |
-| -------------- | --------------------------------------------------------------------- |
-| `DATABASE_URL` | A connection string do Neon, entre aspas                              |
-| `JWT_SECRET`   | Gere um valor novo — **não reaproveite o local**                      |
-| `CORS_ORIGINS` | Deixe `https://circula.vercel.app` por enquanto; ajustamos no passo 4 |
+| Variável       | Valor                                            |
+| -------------- | ------------------------------------------------ |
+| `DATABASE_URL` | A connection string do Neon, entre aspas         |
+| `JWT_SECRET`   | Gere um valor novo — **não reaproveite o local** |
+| `CORS_ORIGINS` | Deixe um valor provisório; ajustamos no passo 4  |
 
 Gere o segredo de produção com:
 
@@ -98,10 +106,10 @@ npm run db:seed --workspace @circula/api
 ### 2.5 Conferir
 
 ```bash
-curl https://SEU-SERVICO.onrender.com/health
+curl https://circula-api.onrender.com/health
 ```
 
-E abra `https://SEU-SERVICO.onrender.com/docs` — a documentação interativa deve
+E abra `https://circula-api.onrender.com/docs` — a documentação interativa deve
 carregar, com o **Try it out** funcionando (os `servers` do OpenAPI usam URL relativa
 justamente para isso).
 
@@ -134,7 +142,7 @@ justamente para isso).
 
 | Variável       | Valor                                                       |
 | -------------- | ----------------------------------------------------------- |
-| `VITE_API_URL` | `https://SEU-SERVICO.onrender.com` — **sem barra no final** |
+| `VITE_API_URL` | `https://circula-api.onrender.com` — **sem barra no final** |
 
 > ⚠️ `VITE_*` é embutida no bundle **em tempo de build**. Mudar essa variável exige um
 > **redeploy**; não basta salvar no painel. E nunca coloque segredo numa variável
@@ -163,7 +171,7 @@ os assets reais continuam sendo servidos normalmente.
 Com a URL real da Vercel em mãos, atualize a variável na Render:
 
 ```
-CORS_ORIGINS=https://SEU-PROJETO.vercel.app
+CORS_ORIGINS=https://desafio-vortex-api.vercel.app
 ```
 
 Salve — a Render reinicia o serviço sozinho.
@@ -174,7 +182,7 @@ Salve — a Render reinicia o serviço sozinho.
 Para autorizar também os previews da Vercel, separe por vírgula:
 
 ```
-CORS_ORIGINS=https://circula.vercel.app,https://circula-git-main-seu-usuario.vercel.app
+CORS_ORIGINS=https://desafio-vortex-api.vercel.app,https://desafio-vortex-api-git-main-franmagno06.vercel.app
 ```
 
 ---
@@ -192,7 +200,7 @@ O workflow [`keep-alive.yml`](../.github/workflows/keep-alive.yml) faz um ping a
 
 | Nome      | Valor                              |
 | --------- | ---------------------------------- |
-| `API_URL` | `https://SEU-SERVICO.onrender.com` |
+| `API_URL` | `https://circula-api.onrender.com` |
 
 > 🎥 **Antes de gravar o vídeo:** o agendador do GitHub Actions não é pontual e pode
 > atrasar. Abra a URL da API manualmente uns 2 minutos antes, ou dispare o workflow na
