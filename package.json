@@ -22,7 +22,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css,yml}\"",
-    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,css,yml}\""
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,css,yml}\"",
+    "apostila": "node scripts/build-apostila.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -30,6 +31,7 @@
     "eslint": "^10.8.0",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.8.0",
+    "marked": "^16.4.2",
     "prettier": "^3.9.6",
     "typescript": "5.9.3",
     "typescript-eslint": "^8.65.0"

@@ -591,6 +591,21 @@ exatamente o que passa por acidente no ambiente local.
 
 Relatório técnico detalhado de cada sprint: [`docs/walkthrough/`](docs/walkthrough/).
 
+### 📘 Material de estudo
+
+Todo o conteúdo técnico das sete sprints está consolidado numa apostila de 34 páginas,
+com um banco de **32 perguntas e respostas** sobre as decisões do projeto:
+
+**[`docs/estudo/Circula-Apostila-Tecnica.pdf`](docs/estudo/Circula-Apostila-Tecnica.pdf)**
+
+Para regerar depois de editar o markdown:
+
+```bash
+npm run apostila
+```
+
+Roteiro cronometrado do vídeo: [`docs/video-script.md`](docs/video-script.md).
+
 ---
 
 ## 👤 Autor

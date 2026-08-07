@@ -39,3 +39,6 @@ dev-dist/
 # PWA gerado em build
 apps/web/dist/sw.js
 apps/web/dist/workbox-*.js
+
+# HTML intermediário da apostila (o PDF é o entregável)
+docs/estudo/.apostila.html
